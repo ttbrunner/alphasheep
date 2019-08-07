@@ -13,7 +13,7 @@ import numpy as np
 
 def main():
     np.random.seed(0)
-    players = [Player(name) for name in ["Hans(1)", "Franz(2)", "Zenzi(3)", "Sepp(4)"]]
+    players = [Player(0, "Hans"), Player(1, "Zenzi"), Player(2, "Franz"), Player(3, "Andal")]
 
     print("New game.")
 
@@ -41,7 +41,7 @@ def main():
         i_deck += 4
 
     for p in players:
-        print("Player {} has cards:".format(p.name))
+        print("Player {} has cards:".format(p))
         print("\n".join("\t{}".format(c) for c in p.cards_in_hand))
 
 
