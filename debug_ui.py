@@ -1,18 +1,25 @@
-import os
+import numpy as np
 
 from card import new_deck
 from gui.gui import Gui
-from gui.deck_images import get_card_img_path
+
+from player import Player
 
 
 def main():
+    # Create players
+    players = [Player(0, "Hans"), Player(1, "Zenzi"), Player(2, "Franz"), Player(3, "Andal")]
+
+    # Deal random cards
     deck = new_deck()
+    np.random.shuffle(deck)
+    i_deck = 0
+    for p in players:
+        p.cards_in_hand.extend(deck[i_deck:i_deck + 8])
+        i_deck += 8
 
-    img_paths = [get_card_img_path(card) for card in deck]
-    for img_path in img_paths:
-        assert os.path.exists(img_path)
-
-    gui = Gui()
+    # Show the UI
+    gui = Gui(players=players)
     gui.run()
 
 

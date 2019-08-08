@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 
+
 class Suit(Enum):
     schellen = 0
     herz = 1

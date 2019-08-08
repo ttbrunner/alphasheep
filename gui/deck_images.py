@@ -39,5 +39,5 @@ open_tarock_filenames = {
     }
 
 
-def get_card_img_path(card: Card):
+def get_card_img_path(card: Card) -> str:
     return os.path.join(open_tarock_dir, open_tarock_filenames[card])
