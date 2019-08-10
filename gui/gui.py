@@ -1,15 +1,23 @@
 import pygame
 
 from card import new_deck, Card, Pip, Suit
+from game import GameState
 from gui.deck_images import get_card_img_path
 from gui.utils import sorted_cards
 
 
 class Gui:
-    def __init__(self, players, resolution=(1280, 800)):
+    # The Gui is intended to operate in a single-threaded fashion.
+    # Normally, we'd need to synchronize things like game_state and is_running, but in this case we don't do any sync.
+    #
+
+    def __init__(self, game_state: GameState, resolution=(1280, 800)):
         pygame.init()
 
+        self.game_state = game_state
         self.resolution = resolution
+        self.is_running = False
+
         self._fps_clock = pygame.time.Clock()
         self._screen = None
         self._card_assets = None
@@ -19,16 +27,14 @@ class Gui:
         card_surf_dims = (310, 170)
         self._player_card_surfs = [pygame.Surface(card_surf_dims) for _ in range(4)]
 
-        self.players = players
-
     def _load_assets(self):
         self._card_assets = {card: pygame.image.load(get_card_img_path(card)).convert() for card in new_deck()}
 
     def _draw_player_cards(self):
         # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the true card list.
         # NOTE: this is recalculated on every draw and kinda wasteful. Might want to do lazy-updating if we need UI performance.
-        trump_suit = Suit.herz              # TODO: Herz-trump is hard-coded for now
-        player_cards = [sorted_cards(cards, trump_suit) for cards in (player.cards_in_hand for player in self.players)]
+        player_cards = [sorted_cards(cards, game_mode=self.game_state.game_mode) for cards in
+                        (player.cards_in_hand for player in self.game_state.players)]
 
         # Draw each player's cards onto their respective card surfaces.
         for i_player in range(4):
@@ -43,8 +49,7 @@ class Gui:
 
     def _draw_loop(self):
         # Runs until the pygame.QUIT event is received.
-        running = True
-        while running:
+        while True:
 
             self._fps_clock.tick(30)         # Limit to 30FPS
             self._screen.fill((0, 0, 0))     # Black background
@@ -52,8 +57,7 @@ class Gui:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
-                    break
+                    return
 
                 # ESC = quit event
                 if event.type == pygame.KEYDOWN:
@@ -63,7 +67,9 @@ class Gui:
             pygame.display.flip()               # Flip buffers
 
     def run(self):
+        self.is_running = True
         self._screen = pygame.display.set_mode(self.resolution)               # Display screen
         pygame.display.set_caption("AlphaSau")
         self._load_assets()
         self._draw_loop()
+        self.is_running = False

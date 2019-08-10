@@ -1,13 +1,20 @@
 from card import Card, Pip, Suit
+from game import GameMode, GameType
 
 
-def sorted_cards(cards, trump_suit: Suit):
+def sorted_cards(cards, game_mode: GameMode):
     # For easier display: sort all cards in descending order, starting with Trump.
+
+    # If no game has been selected (yet), sort as if expecting a Herz-solo (same as any Rufspiel).
+    if game_mode is None:
+        game_mode = GameMode(GameType.solo, trump_suit=Suit.herz)
 
     def sort_key(card: Card):
         key = 0
-        # Suit
-        is_trump = card.suit == trump_suit or card.pip == Pip.ober or card.pip == Pip.unter
+        # Suit - start with Trump
+        is_trump = card.suit == game_mode.trump_suit \
+            or (card.pip == Pip.ober and game_mode.game_type != GameType.wenz) \
+            or card.pip == Pip.unter
         if is_trump:
             key = 1000
         if is_trump and card.pip == Pip.ober:

@@ -1,14 +1,20 @@
 import numpy as np
 
-from card import new_deck
+from card import new_deck, Suit
+from game import GameMode, GameType, GameState
 from gui.gui import Gui
 
 from player import Player
 
 
 def main():
-    # Create players
+
+    # Create game state
     players = [Player(0, "Hans"), Player(1, "Zenzi"), Player(2, "Franz"), Player(3, "Andal")]
+    game_state = GameState(players)
+
+    # No game selection for now: always plaing Herz-Solo.
+    game_state.game_mode = GameMode(GameType.solo, trump_suit=Suit.herz)
 
     # Deal random cards
     deck = new_deck()
@@ -19,7 +25,7 @@ def main():
         i_deck += 8
 
     # Show the UI
-    gui = Gui(players=players)
+    gui = Gui(game_state=game_state)
     gui.run()
 
 
