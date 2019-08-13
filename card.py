@@ -1,5 +1,4 @@
 from enum import Enum
-import numpy as np
 
 
 class Suit(Enum):
@@ -53,11 +52,5 @@ pip_scores = {
 
 
 def new_deck():
-    # Returns an ordered deck.
+    """ Returns an ordered deck. """
     return [Card(suit, pip) for suit in Suit for pip in Pip]
-
-
-# DEBUG
-if __name__ == '__main__':
-    score_all = sum(pip_scores[c.pip] for c in new_deck())
-    print(score_all)

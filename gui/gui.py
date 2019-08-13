@@ -1,4 +1,5 @@
 import pygame
+from threading import Thread
 
 from card import new_deck, Card, Pip, Suit
 from game import GameState
@@ -33,7 +34,7 @@ class Gui:
     def _draw_player_cards(self):
         # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the true card list.
         # NOTE: this is recalculated on every draw and kinda wasteful. Might want to do lazy-updating if we need UI performance.
-        player_cards = [sorted_cards(cards, game_mode=self.game_state.game_mode) for cards in
+        player_cards = [sorted_cards(cards, game_variant=self.game_state.game_variant) for cards in
                         (player.cards_in_hand for player in self.game_state.players)]
 
         # Draw each player's cards onto their respective card surfaces.

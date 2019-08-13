@@ -6,43 +6,35 @@ Game: all tricks are played for one game to conclude
 Trick: individual "Stich" (one card from each player)
 """
 
-from card import new_deck
-from player import Player
+from controller.game_controller import GameController
+from game import Player
 import numpy as np
+
+from player_behaviour import RandomCardAgent
 
 
 def main():
-    np.random.seed(0)
-    players = [Player(0, "Hans"), Player(1, "Zenzi"), Player(2, "Franz"), Player(3, "Andal")]
+    players = [
+        Player("Hans", behavior=RandomCardAgent()),
+        Player("Zenzi", behavior=RandomCardAgent()),
+        Player("Franz", behavior=RandomCardAgent()),
+        Player("Andal", behavior=RandomCardAgent())
+    ]
 
-    print("New game.")
+    # Idea for GUI integration: GUI starts the controller, takes a reference to the GameState and that's that.
+    # 2 options:
+    # a) Either the controller notifies observers (GUI) at specific points (e.g. after a card has been played)
+    # b) Or we run in a multi-threaded fashion and the GUI constantly monitors the GameState
+    #
+    # I'd like to do a) in an Observer pattern, since then we can run single-threaded without much trouble.
+    # This setup implies that the GUI blocks and can delay the game at any time. For our purpose (dev debugs a game, or user plays
+    # against the AI), this is actually preferable.
+    #
+    # b) might be better if we want to observe in real time, or if we want to do longer animations in the GUI while the game is running
+    # in the background. For simplicity, let's do a).
 
-    # Reset players (take away their cards from a previous game)
-    for p in players:
-        assert len(p.cards_in_hand) == 0
-        p.cards_in_scored_tricks.clear()
-
-    print("Dealing.")
-
-    # New deck, shuffle.
-    # No cutting necessary in this simulation since the deck is already perfectly shuffled
-    deck = new_deck()
-    np.random.shuffle(deck)
-
-    # Deal to Players. First 4 cards
-    i_deck = 0
-    for p in players:
-        p.cards_in_hand.extend(deck[i_deck:i_deck + 4])
-        i_deck += 4
-
-    # Second 4 cards. Before this, "laying" is possible (not implemented right now)
-    for p in players:
-        p.cards_in_hand.extend(deck[i_deck:i_deck + 4])
-        i_deck += 4
-
-    for p in players:
-        print("Player {} has cards:".format(p))
-        print("\n".join("\t{}".format(c) for c in p.cards_in_hand))
+    controller = GameController(players)
+    controller.run_game()
 
 
 if __name__ == '__main__':
