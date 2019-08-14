@@ -2,7 +2,9 @@ from typing import List
 from enum import Enum
 
 from card import Suit
+
 from player_behaviour import PlayerBehavior
+from utils import Event
 
 
 class Player:
@@ -35,6 +37,10 @@ class GameState:
 
         # During the playing phase, these are the cards that are "on the table", in order of playing.
         self.current_trick_cards = []
+
+        # Observers (such as the GUI) can subscribe to this event.
+        # For now, this fires when anything (relevant) happened, like players playing cards.
+        self.on_changed = Event()
 
     def clear_after_game(self):
         self.game_phase = GamePhase.pre_deal

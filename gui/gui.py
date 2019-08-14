@@ -1,16 +1,19 @@
 import pygame
-from threading import Thread
 
-from card import new_deck, Card, Pip, Suit
+from card import new_deck
 from game import GameState
 from gui.deck_images import get_card_img_path
 from gui.utils import sorted_cards
 
 
+class UserQuitGameException(Exception):
+    # Named exception that happens when the user closes the window. This will bubble up to the controller and (likely) terminate.
+    pass
+
+
 class Gui:
     # The Gui is intended to operate in a single-threaded fashion.
     # Normally, we'd need to synchronize things like game_state and is_running, but in this case we don't do any sync.
-    #
 
     def __init__(self, game_state: GameState, resolution=(1280, 800)):
         pygame.init()
@@ -18,6 +21,7 @@ class Gui:
         self.game_state = game_state
         self.resolution = resolution
         self.is_running = False
+        self.game_state.on_changed.subscribe(self.on_game_state_changed)                # TODO: This should be cleaned up.
 
         self._fps_clock = pygame.time.Clock()
         self._screen = None
@@ -39,6 +43,7 @@ class Gui:
 
         # Draw each player's cards onto their respective card surfaces.
         for i_player in range(4):
+            self._player_card_surfs[i_player].fill((0, 0, 0))  # Black background
             for i_card, card in enumerate(player_cards[i_player]):
                 self._player_card_surfs[i_player].blit(self._card_assets[card], (i_card*30, 0))
 
@@ -48,29 +53,35 @@ class Gui:
         self._screen.blit(pygame.transform.rotate(self._player_card_surfs[2], 180), (475, 30))
         self._screen.blit(pygame.transform.rotate(self._player_card_surfs[3], 90), (1080, 170))
 
-    def _draw_loop(self):
-        # Runs until the pygame.QUIT event is received.
-        while True:
+    def _draw_step(self):
+        # Draws a single frame and returns control.
 
-            self._fps_clock.tick(30)         # Limit to 30FPS
-            self._screen.fill((0, 0, 0))     # Black background
-            self._draw_player_cards()
+        self._fps_clock.tick(30)         # Limit to 30FPS
+        self._screen.fill((0, 0, 0))     # Black background
+        self._draw_player_cards()
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                raise UserQuitGameException
 
-                # ESC = quit event
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        pygame.event.post(pygame.event.Event(pygame.QUIT))
+            # ESC = quit event
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.event.post(pygame.event.Event(pygame.QUIT))
 
-            pygame.display.flip()               # Flip buffers
+            # Mouse button = quit event for now
+            if event.type == pygame.MOUSEBUTTONUP:
+                pygame.event.post(pygame.event.Event(pygame.QUIT))
 
-    def run(self):
-        self.is_running = True
+        pygame.display.flip()               # Flip buffers
+        pygame.time.wait(1000)
+
+    def start(self):
         self._screen = pygame.display.set_mode(self.resolution)               # Display screen
         pygame.display.set_caption("AlphaSau")
         self._load_assets()
-        self._draw_loop()
-        self.is_running = False
+        self._draw_step()
+
+    def on_game_state_changed(self):
+        # Receiving this event when we should draw an update (and maybe pause).
+        self._draw_step()

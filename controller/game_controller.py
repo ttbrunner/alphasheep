@@ -15,6 +15,8 @@ from game import GameState, GamePhase, GameVariant, Player
 
 class GameController:
     def __init__(self, players: List[Player]):
+        assert len(players) == 4
+
         print("Initializing game.")
         print("Players:")
         for p in players:
@@ -40,17 +42,18 @@ class GameController:
         for p in self.game_state.players:
             p.cards_in_hand.extend(deck[i_deck:i_deck + 8])
             i_deck += 8
+        self.game_state.on_changed.notify()
 
         # BIDDING PHASE
         # For now, no bidding allowed - a random player will do Herz-Solo.
         self.game_state.game_phase = GamePhase.bidding
         log_phase()
-
         i_decl = np.random.randint(4)
         g_var = GameVariant(GameVariant.Contract.suit_solo, trump_suit=Suit.herz)
         print("Game Variant: Player {} is declaring a {}!".format(self.game_state.players[i_decl], g_var))
         self.game_state.declaring_player = self.game_state.players[i_decl]
         self.game_state.game_variant = g_var
+        self.game_state.on_changed.notify()
 
         # PLAYING PHASE
         self.game_state.game_phase = GamePhase.playing
@@ -73,9 +76,14 @@ class GameController:
         print("Summary:")
         for i, p in enumerate(self.game_state.players):
             print("Player {} {}.".format(p, "wins" if player_win[i] else "loses"))
+        self.game_state.on_changed.notify()
 
+        # Reset to PRE-DEAL PHASE.
+        self.game_state.game_phase = GamePhase.pre_deal
+        log_phase()
         self.game_state.i_player_dealer = (self.game_state.i_player_dealer + 1) % 4
         self.game_state.clear_after_game()
+        self.game_state.on_changed.notify()
 
     def _playing_phase(self):
         # Main phase of the game (trick taking).
@@ -105,6 +113,7 @@ class GameController:
                 print("Player {} is playing {}.".format(player, selected_card))
                 player.cards_in_hand.remove(selected_card)
                 self.game_state.current_trick_cards.append(selected_card)
+                self.game_state.on_changed.notify()
 
             # Determine winner of trick.
             # TODO: Not implemented - random winner for now.
@@ -118,5 +127,6 @@ class GameController:
             i_p_leader = i_win_player
             win_player.cards_in_scored_tricks.extend(self.game_state.current_trick_cards)
             self.game_state.current_trick_cards.clear()
+            self.game_state.on_changed.notify()
 
         assert sum(len(p.cards_in_scored_tricks) for p in self.game_state.players) == 32

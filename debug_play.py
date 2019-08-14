@@ -10,6 +10,7 @@ from controller.game_controller import GameController
 from game import Player
 import numpy as np
 
+from gui.gui import Gui
 from player_behaviour import RandomCardAgent
 
 
@@ -34,6 +35,9 @@ def main():
     # in the background. For simplicity, let's do a).
 
     controller = GameController(players)
+    gui = Gui(controller.game_state)
+    gui.start()
+
     controller.run_game()
 
 
