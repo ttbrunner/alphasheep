@@ -90,6 +90,7 @@ class GameController:
 
         # Left of dealer is leads the first trick.
         i_p_leader = (self.game_state.i_player_dealer + 1) % 4
+        self.game_state.leading_player = self.game_state.players[i_p_leader]
 
         # Playing 8 tricks
         for i_trick in range(8):
@@ -125,6 +126,7 @@ class GameController:
 
             # Move the trick to the scored cards of the winner.
             i_p_leader = i_win_player
+            self.game_state.leading_player = self.game_state.players[i_p_leader]
             win_player.cards_in_scored_tricks.extend(self.game_state.current_trick_cards)
             self.game_state.current_trick_cards.clear()
             self.game_state.on_changed.notify()

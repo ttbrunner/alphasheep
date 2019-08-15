@@ -16,10 +16,10 @@ from player_behaviour import RandomCardAgent
 
 def main():
     players = [
-        Player("Hans", behavior=RandomCardAgent()),
-        Player("Zenzi", behavior=RandomCardAgent()),
-        Player("Franz", behavior=RandomCardAgent()),
-        Player("Andal", behavior=RandomCardAgent())
+        Player("0-Hans", behavior=RandomCardAgent()),
+        Player("1-Zenzi", behavior=RandomCardAgent()),
+        Player("2-Franz", behavior=RandomCardAgent()),
+        Player("3-Andal", behavior=RandomCardAgent())
     ]
 
     # Idea for GUI integration: GUI starts the controller, takes a reference to the GameState and that's that.

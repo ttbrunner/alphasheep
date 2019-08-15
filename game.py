@@ -35,6 +35,9 @@ class GameState:
         self.game_variant = None
         self.declaring_player = None
 
+        # Player who plays the first card of the trick.
+        self.leading_player = None
+
         # During the playing phase, these are the cards that are "on the table", in order of playing.
         self.current_trick_cards = []
 
@@ -46,6 +49,7 @@ class GameState:
         self.game_phase = GamePhase.pre_deal
         self.game_variant = None
         self.declaring_player = None
+        self.leading_player = None
         self.current_trick_cards.clear()
         for p in self.players:
             p.cards_in_hand.clear()
