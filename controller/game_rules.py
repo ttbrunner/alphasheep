@@ -51,7 +51,7 @@ class GameRules:
                 if card != rufsau and rufsau in cards_in_hand:
                     # Player has the ruf-sau but did not play it!
                     return False                                        # TODO: Check rules of Davonlaufen again!
-            # All other cases of matching are OK.
+            # All other cases of matching are OK. # TODO: matching eichel unter with eichel sieben is not OK!
             return True
 
         if self.game_variant.is_trump(first_card) and any(c for c in cards_in_hand if self.game_variant.is_trump(c)):

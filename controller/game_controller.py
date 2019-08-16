@@ -10,6 +10,7 @@ from typing import List
 import numpy as np
 
 from card import new_deck, Suit, pip_scores
+from controller.game_rules import GameRules
 from game import GameState, GamePhase, GameVariant, Player
 
 
@@ -88,6 +89,9 @@ class GameController:
     def _playing_phase(self):
         # Main phase of the game (trick taking).
 
+        # New "rules" for each playing phase, depending on the variant.
+        game_rules = GameRules(game_variant=self.game_state.game_variant)
+
         # Left of dealer leads the first trick.
         i_p_leader = (self.game_state.i_player_dealer + 1) % 4
         self.game_state.leading_player = self.game_state.players[i_p_leader]
@@ -101,7 +105,7 @@ class GameController:
 
                 # Get next card from player behavior.
                 player = self.game_state.players[i_p]
-                selected_card = player.behavior.play_card(player.cards_in_hand, cards_in_trick=self.game_state.current_trick_cards)
+                selected_card = player.behavior.play_card(player.cards_in_hand, cards_in_trick=self.game_state.current_trick_cards, game_rules=game_rules)
 
                 # CHECK 1: Does the player have that card?
                 # Again, this check is only for data integrity. More sophisticated logic (trying to play cards that are not available...)
