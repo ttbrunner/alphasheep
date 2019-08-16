@@ -1,7 +1,7 @@
 from typing import List
 from enum import Enum
 
-from card import Suit
+from card import Suit, Card, Pip
 
 from player_behaviour import PlayerBehavior
 from utils import Event
@@ -94,6 +94,12 @@ class GameVariant:
         self.contract = contract
         self.trump_suit = trump_suit
         self.ruf_suit = ruf_suit
+
+    def is_trump(self, card: Card):
+        # Returns true if the card is trump in this game variant.
+        return card.suit == self.trump_suit \
+               or (card.pip == Pip.ober and self.contract != GameVariant.Contract.wenz) \
+               or card.pip == Pip.unter
 
     def __str__(self):
         if self.contract == self.Contract.suit_solo:

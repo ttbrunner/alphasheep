@@ -88,7 +88,7 @@ class GameController:
     def _playing_phase(self):
         # Main phase of the game (trick taking).
 
-        # Left of dealer is leads the first trick.
+        # Left of dealer leads the first trick.
         i_p_leader = (self.game_state.i_player_dealer + 1) % 4
         self.game_state.leading_player = self.game_state.players[i_p_leader]
 

@@ -12,9 +12,7 @@ def sorted_cards(cards, game_variant: GameVariant):
     def sort_key(card: Card):
         key = 0
         # Suit - start with Trump
-        is_trump = card.suit == game_variant.trump_suit \
-                   or (card.pip == Pip.ober and game_variant.contract != GameVariant.Contract.wenz) \
-                   or card.pip == Pip.unter
+        is_trump = game_variant.is_trump(card)
         if is_trump:
             key = 1000
         if is_trump and card.pip == Pip.ober:
