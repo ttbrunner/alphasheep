@@ -50,10 +50,10 @@ class GameController:
         self.game_state.game_phase = GamePhase.bidding
         log_phase()
         i_decl = np.random.randint(4)
-        g_var = GameMode(GameContract.suit_solo, trump_suit=Suit.herz)
-        print("Game Variant: Player {} is declaring a {}!".format(self.game_state.players[i_decl], g_var))
+        game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz)
+        print("Game Variant: Player {} is declaring a {}!".format(self.game_state.players[i_decl], game_mode))
         self.game_state.declaring_player = self.game_state.players[i_decl]
-        self.game_state.game_mode = g_var
+        self.game_state.game_mode = game_mode
         self.game_state.on_changed.notify()
 
         # PLAYING PHASE
@@ -73,7 +73,7 @@ class GameController:
             player_win = [i == i_decl for i in range(4)]
         else:
             player_win = [i != i_decl for i in range(4)]
-        print("=> Player {} {} the {}!".format(self.game_state.declaring_player, "wins" if player_win[i_decl] else "loses", g_var))
+        print("=> Player {} {} the {}!".format(self.game_state.declaring_player, "wins" if player_win[i_decl] else "loses", game_mode))
         print("Summary:")
         for i, p in enumerate(self.game_state.players):
             print("Player {} {}.".format(p, "wins" if player_win[i] else "loses"))
