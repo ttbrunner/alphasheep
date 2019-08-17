@@ -1,7 +1,7 @@
 import pygame
 
-from card import new_deck
-from game import GameState
+from game.card import new_deck
+from game.game_state import GameState
 from gui.deck_images import get_card_img_path
 from gui.utils import sorted_cards
 
@@ -42,7 +42,7 @@ class Gui:
     def _draw_player_cards(self):
         # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the true card list.
         # NOTE: this is recalculated on every draw and kinda wasteful. Might want to do lazy-updating if we need UI performance.
-        player_cards = [sorted_cards(cards, game_variant=self.game_state.game_variant) for cards in
+        player_cards = [sorted_cards(cards, game_mode=self.game_state.game_mode) for cards in
                         (player.cards_in_hand for player in self.game_state.players)]
 
         # Draw each player's cards onto their respective card surfaces.
@@ -65,9 +65,9 @@ class Gui:
             return
 
         coords = [
-            (100,100),
+            (100, 100),
             (40, 50),
-            (100,0),
+            (100, 0),
             (160, 50),
             ]
 
@@ -96,17 +96,14 @@ class Gui:
     def _handle_pygame_events(self):
         # Handles events from the PyGame event queue (not the GameState events!)
 
-        def quit():
-            raise UserQuitGameException
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                quit()
+                raise UserQuitGameException
 
             # ESC = quit event.
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    quit()
+                    raise UserQuitGameException
 
             # Mouse button = stop drawing and return control.
             if event.type == pygame.MOUSEBUTTONUP:

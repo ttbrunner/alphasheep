@@ -9,9 +9,9 @@ from typing import List
 
 import numpy as np
 
-from card import new_deck, Suit, pip_scores
-from controller.game_rules import GameRules
-from game import GameState, GamePhase, GameVariant, Player
+from game.card import new_deck, Suit, pip_scores
+from game.game_mode import GameMode, GameContract
+from game.game_state import Player, GameState, GamePhase
 
 
 class GameController:
@@ -50,10 +50,10 @@ class GameController:
         self.game_state.game_phase = GamePhase.bidding
         log_phase()
         i_decl = np.random.randint(4)
-        g_var = GameVariant(GameVariant.Contract.suit_solo, trump_suit=Suit.herz)
+        g_var = GameMode(GameContract.suit_solo, trump_suit=Suit.herz)
         print("Game Variant: Player {} is declaring a {}!".format(self.game_state.players[i_decl], g_var))
         self.game_state.declaring_player = self.game_state.players[i_decl]
-        self.game_state.game_variant = g_var
+        self.game_state.game_mode = g_var
         self.game_state.on_changed.notify()
 
         # PLAYING PHASE
@@ -89,12 +89,13 @@ class GameController:
     def _playing_phase(self):
         # Main phase of the game (trick taking).
 
-        # New "rules" for each playing phase, depending on the variant.
-        game_rules = GameRules(game_variant=self.game_state.game_variant)
+        # Some shortcuts
+        game_state = self.game_state
+        game_mode = self.game_state.game_mode
 
         # Left of dealer leads the first trick.
-        i_p_leader = (self.game_state.i_player_dealer + 1) % 4
-        self.game_state.leading_player = self.game_state.players[i_p_leader]
+        i_p_leader = (game_state.i_player_dealer + 1) % 4
+        game_state.leading_player = game_state.players[i_p_leader]
 
         # Playing 8 tricks
         for i_trick in range(8):
@@ -103,9 +104,9 @@ class GameController:
             # Players are playing in ascending order, starting with the leader.
             for i_p in (np.arange(4) + i_p_leader) % 4:
 
-                # Get next card from player behavior.
-                player = self.game_state.players[i_p]
-                selected_card = player.behavior.play_card(player.cards_in_hand, cards_in_trick=self.game_state.current_trick_cards, game_rules=game_rules)
+                # Get next card from player agent.
+                player = game_state.players[i_p]
+                selected_card = player.behavior.play_card(player.cards_in_hand, cards_in_trick=game_state.current_trick_cards, game_mode=game_mode)
 
                 # CHECK 1: Does the player have that card?
                 # Again, this check is only for data integrity. More sophisticated logic (trying to play cards that are not available...)
@@ -113,26 +114,26 @@ class GameController:
                 assert selected_card in player.cards_in_hand
 
                 # CHECK 2: Do the rules allow the player to play that card?
-                # TODO: Not implemented - no rule checking for now.
+                if not game_mode.is_play_allowed(selected_card, cards_in_hand=player.cards_in_hand, cards_in_trick=game_state.current_trick_cards):
+                    raise print("Player {} tried to play {}, but it's not allowed!".format(player, selected_card))
 
                 print("Player {} is playing {}.".format(player, selected_card))
                 player.cards_in_hand.remove(selected_card)
-                self.game_state.current_trick_cards.append(selected_card)
-                self.game_state.on_changed.notify()
+                game_state.current_trick_cards.append(selected_card)
+                game_state.on_changed.notify()
 
             # Determine winner of trick.
-            # TODO: Not implemented - random winner for now.
-            i_win_card = np.random.randint(4)
+            i_win_card = game_mode.get_trick_winner(game_state.current_trick_cards)
             i_win_player = (i_p_leader + i_win_card) % 4
-            win_card = self.game_state.current_trick_cards[i_win_card]
-            win_player = self.game_state.players[i_win_player]
+            win_card = game_state.current_trick_cards[i_win_card]
+            win_player = game_state.players[i_win_player]
             print("Player {} wins the trick with card {}.".format(win_player, win_card))
 
             # Move the trick to the scored cards of the winner.
             i_p_leader = i_win_player
-            self.game_state.leading_player = self.game_state.players[i_p_leader]
-            win_player.cards_in_scored_tricks.extend(self.game_state.current_trick_cards)
-            self.game_state.current_trick_cards.clear()
-            self.game_state.on_changed.notify()
+            game_state.leading_player = game_state.players[i_p_leader]
+            win_player.cards_in_scored_tricks.extend(game_state.current_trick_cards)
+            game_state.current_trick_cards.clear()
+            game_state.on_changed.notify()
 
-        assert sum(len(p.cards_in_scored_tricks) for p in self.game_state.players) == 32
+        assert sum(len(p.cards_in_scored_tricks) for p in game_state.players) == 32

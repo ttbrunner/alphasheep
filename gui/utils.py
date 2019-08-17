@@ -1,18 +1,18 @@
-from card import Card, Pip, Suit
-from game import GameVariant
+from game.card import Card, Pip, Suit
+from game.game_mode import GameMode, GameContract
 
 
-def sorted_cards(cards, game_variant: GameVariant):
+def sorted_cards(cards, game_mode: GameMode):
     # For easier display: sort all cards in descending order, starting with Trump.
 
     # If no game has been selected (yet), sort as if expecting a Herz-solo (same as any Rufspiel).
-    if game_variant is None:
-        game_variant = GameVariant(GameVariant.Contract.suit_solo, trump_suit=Suit.herz)
+    if game_mode is None:
+        game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz)
 
     def sort_key(card: Card):
         key = 0
         # Suit - start with Trump
-        is_trump = game_variant.is_trump(card)
+        is_trump = game_mode.is_trump(card)
         if is_trump:
             key = 1000
         if is_trump and card.pip == Pip.ober:

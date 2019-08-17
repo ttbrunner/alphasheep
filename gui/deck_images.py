@@ -1,6 +1,6 @@
 import os
 
-from card import Card, Pip, Suit
+from game.card import Card, Pip, Suit
 
 open_tarock_dir = "assets/cards/OpenTarock/"
 open_tarock_filenames = {

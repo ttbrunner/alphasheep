@@ -7,11 +7,10 @@ Trick: individual "Stich" (one card from each player)
 """
 
 from controller.game_controller import GameController
-from game import Player
-import numpy as np
+from game.game_state import Player
 
 from gui.gui import Gui
-from player_behaviour import RandomCardAgent
+from agents.player_agent import RandomCardAgent
 
 
 def main():
