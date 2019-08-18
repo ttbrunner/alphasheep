@@ -8,7 +8,7 @@ from game.game_mode import GameMode
 
 class PlayerAgent(ABC):
     """
-    Abstract class for all types of agents.
+    Abstract class for all types of agents. With "agent" here we mean the behavior of a player.
     """
 
     @abstractmethod
@@ -22,9 +22,21 @@ class PlayerAgent(ABC):
         """
         pass
 
+    @abstractmethod
+    def notify_game_result(self, won: bool, own_score: int, partner_score: int = None):
+        """
+        Notifies the agent of the result of the game.
+        :param won: True if the player won the game.
+        :param own_score: Number of points scored by the player.
+        :param partner_score: Number of points scored by the player's patner. Optional: only if playing Rufspiel.
+        """
+        pass
+
 
 class RandomCardAgent(PlayerAgent):
-    # Baseline agent. Selects a random card from its hand and plays it.
+    """
+    Baseline agent. Selects a random card from its hand and plays it.
+    """
 
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):
         # Shuffles the agent's cards and picks the first one that is allowed.
@@ -37,3 +49,7 @@ class RandomCardAgent(PlayerAgent):
 
         raise ValueError("None of the Player's cards seem to be allowed! This should never happen! Player has cards: {}".format(
             ",".join(str(c) for c in cards_in_hand)))
+
+    def notify_game_result(*args, **kwargs):
+        # Not needed. This agent is perfectly dumb.
+        pass

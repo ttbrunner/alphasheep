@@ -16,16 +16,24 @@ from game.game_state import Player, GameState, GamePhase
 
 class GameController:
     def __init__(self, players: List[Player]):
+        """
+        Creates a GameController and, together with it, a GameState. Should be reused - run run_game() in order to simulate a single game.
+        :param players: the players, along with their agents.
+        """
         assert len(players) == 4
 
         print("Initializing game.")
         print("Players:")
         for p in players:
-            print("Player {} with behavior {}.".format(p, p.behavior))
+            print("Player {} with behavior {}.".format(p, p.agent))
 
         self.game_state = GameState(players)
 
     def run_game(self):
+        """
+        Runs a single game (and shifts the dealing player clockwise). Can be called multiple times.
+        """
+
         def log_phase():
             print()
             print("Entering Phase: {}".format(self.game_state.game_phase))
@@ -83,13 +91,14 @@ class GameController:
         print("Summary:")
         for i, p in enumerate(self.game_state.players):
             print("Player {} {}.".format(p, "wins" if player_win[i] else "loses"))
+            p.agent.notify_game_result(player_win[i], own_score=player_scores[i])
         self.game_state.on_changed.notify()
 
         # Reset to PRE-DEAL PHASE.
         self.game_state.game_phase = GamePhase.pre_deal
         log_phase()
-        self.game_state.i_player_dealer = (self.game_state.i_player_dealer + 1) % 4
         self.game_state.clear_after_game()
+        self.game_state.i_player_dealer = (self.game_state.i_player_dealer + 1) % 4
         self.game_state.on_changed.notify()
 
     def _playing_phase(self):
@@ -112,7 +121,7 @@ class GameController:
 
                 # Get next card from player agent.
                 player = game_state.players[i_p]
-                selected_card = player.behavior.play_card(player.cards_in_hand, cards_in_trick=game_state.current_trick_cards, game_mode=game_mode)
+                selected_card = player.agent.play_card(player.cards_in_hand, cards_in_trick=game_state.current_trick_cards, game_mode=game_mode)
 
                 # CHECK 1: Does the player have that card?
                 # Again, this check is only for data integrity. More sophisticated logic (trying to play cards that are not available...)
@@ -147,7 +156,7 @@ class GameController:
     def _pick_best_game(self):
         # Depending on the cards of all players, pick a game to play.
         # For now, the controller decides the game mode and simply condemns the players to play it. In this version, only Herz-solo is supported.
-        # In this way, we will re-shuffle until we decide a Herz-Solo is playable. Thus all games can be reasonably Herz-Solos.
+        # In this way, we will re-shuffle until we decide a Herz-Solo is playable. Thus all games can be reasonable Herz-Solos.
         # TODO: Allow bidding for agents
         # TODO: Could pick other modes as well.
 

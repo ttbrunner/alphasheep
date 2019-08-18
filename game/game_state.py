@@ -1,16 +1,16 @@
 from typing import List
 from enum import Enum
 
-from agents.player_agent import PlayerAgent
+from agents.agents import PlayerAgent
 from utils import Event
 
 
 class Player:
     # Game model class representing a player. The actual agent is defined by PlayerAgent.
 
-    def __init__(self, name, behavior: PlayerAgent):
+    def __init__(self, name, agent: PlayerAgent):
         self.name = name
-        self.behavior = behavior
+        self.agent = agent
 
         self.cards_in_hand = []
         self.cards_in_scored_tricks = []
@@ -29,8 +29,7 @@ class GamePhase(Enum):
 
 class GameState:
     """
-    GameState is the main model class of the simulator. It is intended to be reused between games (TODO: or could it be replaced?)
-
+    GameState is the main model class of the simulator. It is intended to be reused between games.
     The controller and the GUI both have access to it, but not the Agents (of course).
     """
 
