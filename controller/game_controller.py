@@ -9,7 +9,7 @@ from typing import List
 
 import numpy as np
 
-from game.card import new_deck, Suit, pip_scores
+from game.card import new_deck, Suit, pip_scores, Pip, Card
 from game.game_mode import GameMode, GameContract
 from game.game_state import Player, GameState, GamePhase
 
@@ -34,25 +34,31 @@ class GameController:
 
         # DEALING PHASE
         # Deal random cards to players. For now, there is no laying, i.e. all 8 cards are dealt at once.
+        # Simplification: we keep shuffling until somebody can play a Herz Solo.
+        # TODO: deal normally and allow agents to bid & declare on their own
         self.game_state.game_phase = GamePhase.dealing
         log_phase()
         print("Player {} is dealing.".format(self.game_state.players[self.game_state.i_player_dealer]))
         deck = new_deck()
-        np.random.shuffle(deck)
-        i_deck = 0
-        for p in self.game_state.players:
-            p.cards_in_hand.extend(deck[i_deck:i_deck + 8])
-            i_deck += 8
+        game_mode = None
+        while game_mode is None:
+            np.random.shuffle(deck)
+            i_deck = 0
+            for p in self.game_state.players:
+                p.cards_in_hand.clear()
+                p.cards_in_hand.extend(deck[i_deck:i_deck + 8])
+                i_deck += 8
+            game_mode = self._pick_best_game()
         self.game_state.on_changed.notify()
 
         # BIDDING PHASE
-        # For now, no bidding allowed - a random player will do Herz-Solo.
+        # For now, no bidding allowed - we made sure somebody can play a Herz Solo, and that they will!
+        # Like this, every game is always a Herz Solo, although not always the same player.
+        # TODO: allow agents to bid & declare on their own
         self.game_state.game_phase = GamePhase.bidding
         log_phase()
-        i_decl = np.random.randint(4)
-        game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz)
+        i_decl = game_mode.declaring_player_id
         print("Game Variant: Player {} is declaring a {}!".format(self.game_state.players[i_decl], game_mode))
-        self.game_state.declaring_player = self.game_state.players[i_decl]
         self.game_state.game_mode = game_mode
         self.game_state.on_changed.notify()
 
@@ -73,7 +79,7 @@ class GameController:
             player_win = [i == i_decl for i in range(4)]
         else:
             player_win = [i != i_decl for i in range(4)]
-        print("=> Player {} {} the {}!".format(self.game_state.declaring_player, "wins" if player_win[i_decl] else "loses", game_mode))
+        print("=> Player {} {} the {}!".format(self.game_state.players[i_decl], "wins" if player_win[i_decl] else "loses", game_mode))
         print("Summary:")
         for i, p in enumerate(self.game_state.players):
             print("Player {} {}.".format(p, "wins" if player_win[i] else "loses"))
@@ -137,3 +143,34 @@ class GameController:
             game_state.on_changed.notify()
 
         assert sum(len(p.cards_in_scored_tricks) for p in game_state.players) == 32
+
+    def _pick_best_game(self):
+        # Depending on the cards of all players, pick a game to play.
+        # For now, the controller decides the game mode and simply condemns the players to play it. In this version, only Herz-solo is supported.
+        # In this way, we will re-shuffle until we decide a Herz-Solo is playable. Thus all games can be reasonably Herz-Solos.
+        # TODO: Allow bidding for agents
+        # TODO: Could pick other modes as well.
+
+        # Check if it's reasonably to have somebody play a Herz Solo.
+        game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=None)
+
+        def can_play_suit_solo(p):
+            # Needs 6 trumps and either good Obers or lots of Unters.
+            if sum(1 for c in p.cards_in_hand if game_mode.is_trump(c)) >= 6:
+                if sum(1 for c in p.cards_in_hand if c.pip == Pip.ober) >= 2:
+                    return True
+                elif sum(1 for c in p.cards_in_hand if c.pip == Pip.unter) >= 3:
+                    return True
+                elif Card(Suit.eichel, Pip.ober) in p.cards_in_hand:
+                    return True
+            return False
+
+        for i_p, p in enumerate(self.game_state.players):
+            if can_play_suit_solo(p):
+                game_mode.declaring_player_id = i_p
+                return game_mode
+
+        return None                         # Nobody is playing anything
+
+
+

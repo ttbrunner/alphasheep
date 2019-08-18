@@ -21,7 +21,7 @@ class GameMode:
     and provides logic to enforce the game rules that apply.
     """
 
-    def __init__(self, contract: GameContract, ruf_suit: Suit = None, trump_suit: Suit = None):
+    def __init__(self, contract: GameContract, declaring_player_id, ruf_suit: Suit = None, trump_suit: Suit = None):
         # Here are a couple of checks that are just for data integrity.
         if contract == GameContract.rufspiel:
             assert ruf_suit is not None
@@ -37,6 +37,7 @@ class GameMode:
             assert trump_suit is None, "No Farbwenz allowed in the Wirtshaus!"
 
         self.contract = contract
+        self.declaring_player_id = declaring_player_id          # Only storing ID, so agents can't directly access other Player objects.
         self.trump_suit = trump_suit
         self.ruf_suit = ruf_suit
 

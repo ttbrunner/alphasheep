@@ -43,7 +43,6 @@ class GameState:
         # Starting pre-deal, where the game has not been declared.
         self.game_phase = GamePhase.pre_deal
         self.game_mode = None
-        self.declaring_player = None
 
         # Player who plays the first card of the trick.
         self.leading_player = None
@@ -58,7 +57,6 @@ class GameState:
     def clear_after_game(self):
         self.game_phase = GamePhase.pre_deal
         self.game_mode = None
-        self.declaring_player = None
         self.leading_player = None
         self.current_trick_cards.clear()
         for p in self.players:

@@ -7,7 +7,7 @@ def sorted_cards(cards, game_mode: GameMode):
 
     # If no game has been selected (yet), sort as if expecting a Herz-solo (same as any Rufspiel).
     if game_mode is None:
-        game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz)
+        game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=None)
 
     def sort_key(card: Card):
         key = 0
