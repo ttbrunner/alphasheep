@@ -174,8 +174,8 @@ class GameController:
                     return True
             return False
 
-        for i_p, p in enumerate(self.game_state.players):
-            if can_play_suit_solo(p):
+        for i_p, player in enumerate(self.game_state.players):
+            if can_play_suit_solo(player):
                 game_mode.declaring_player_id = i_p
                 return game_mode
 
