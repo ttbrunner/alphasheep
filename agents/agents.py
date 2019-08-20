@@ -22,13 +22,18 @@ class PlayerAgent(ABC):
         """
         pass
 
-    @abstractmethod
     def notify_game_result(self, won: bool, own_score: int, partner_score: int = None):
         """
         Notifies the agent of the result of the game.
         :param won: True if the player won the game.
         :param own_score: Number of points scored by the player.
         :param partner_score: Number of points scored by the player's patner. Optional: only if playing Rufspiel.
+        """
+        pass
+
+    def notify_new_game(self):
+        """
+        Notifies the agent that a new game has started.
         """
         pass
 
@@ -49,7 +54,3 @@ class RandomCardAgent(PlayerAgent):
 
         raise ValueError("None of the Player's cards seem to be allowed! This should never happen! Player has cards: {}".format(
             ",".join(str(c) for c in cards_in_hand)))
-
-    def notify_game_result(*args, **kwargs):
-        # Not needed. This agent is perfectly dumb.
-        pass

@@ -40,6 +40,9 @@ class GameController:
 
         assert self.game_state.game_phase == GamePhase.pre_deal
 
+        for p in self.game_state.players:
+            p.agent.notify_new_game()
+
         # DEALING PHASE
         # Deal random cards to players. For now, there is no laying, i.e. all 8 cards are dealt at once.
         # Simplification: we keep shuffling until somebody can play a Herz Solo.
