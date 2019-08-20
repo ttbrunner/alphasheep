@@ -2,6 +2,7 @@
 Runs a large number of games without the GUI. Use this to train an agent.
 """
 from agents.agents import RandomCardAgent
+from agents.dqn_agent import DQNAgent
 from controller.game_controller import GameController
 from game.game_state import Player
 
@@ -11,7 +12,7 @@ def main():
     players = [
         Player("0-Hans", agent=RandomCardAgent()),
         Player("1-Zenzi", agent=RandomCardAgent()),
-        Player("2-Franz", agent=RandomCardAgent()),
+        Player("2-AlphaSau", agent=DQNAgent()),
         Player("3-Andal", agent=RandomCardAgent())
     ]
     controller = GameController(players)

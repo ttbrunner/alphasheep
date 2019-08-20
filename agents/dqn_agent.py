@@ -69,7 +69,7 @@ class DQNAgent(PlayerAgent):
         model.add(Dense(64, activation='relu'))
         model.add(Dense(self._action_size, activation='linear'))
 
-        optimizer = Adam(learning_rate=0.01)
+        optimizer = Adam(lr=0.01)
         model.compile(loss='mse', optimizer=optimizer)
         return model
 
@@ -88,7 +88,7 @@ class DQNAgent(PlayerAgent):
             for i_ex in indices:
                 state, action, reward, next_state, terminated = self.experience_buffer[i_ex]
 
-                target = self.q_network.predict(state)
+                target = self.q_network.predict(state[np.newaxis, :])
 
                 if terminated:
                     target[0][action] = reward
@@ -127,7 +127,7 @@ class DQNAgent(PlayerAgent):
                     break
         else:
             # Exploit: Predict q-values for the current state and select the best action/card that is allowed.
-            q_values = self.q_network.predict(state)            # TODO: check batch dimension
+            q_values = self.q_network.predict(state[np.newaxis, :])[0]
             i_best_actions = np.argsort(q_values)[::-1]         # TODO: debug to make sure this is correct
             for i_action in i_best_actions:
                 card = self._cards[i_action]
