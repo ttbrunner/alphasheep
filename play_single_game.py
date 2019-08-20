@@ -3,7 +3,10 @@ Runs a single game with an interactive GUI. Use for debugging purposes, or just 
 """
 import argparse
 
+from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
+from game.card import Suit
+from game.game_mode import GameMode, GameContract
 from game.game_state import Player
 
 from gui.gui import Gui
@@ -23,16 +26,21 @@ def main():
         Player("3-Andal", agent=RandomCardAgent())
     ]
 
-    # GUI integration: GUI starts the controller, takes a reference to the GameState and that's that.
-    # The GUI registers on events provided by the controller. Since everything runs single-threaded,
-    # it can block (and wait for user clicks) before the controller continues with the next move.
-    #
-    # In this way, the GUI can be used to debug and watch a single game.
+    # # Deal fairly and allow agents to choose their game.
+    # controller = GameController(players)
 
-    controller = GameController(players)
+    # Rig the game so Player 0 has the cards to play a Herz-Solo.
+    # Also, force them to play it.
+    game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=0)
+    controller = GameController(players, dealing_behavior=DealWinnableHand(game_mode), forced_game_mode=game_mode)
+
+    # The GUI initializes PyGame and registers on events provided by the controller - then returns control.
+    # The controller then runs the game as usual and fires GameStateChanged events, which the GUI receives.
+    #
+    # Since everything is done synchronously, the GUI can block on every event (and wait for the user to click).
+    # In this way, the GUI can be used to debug and watch a single game.
     if run_with_gui:
         gui = Gui(controller.game_state)
-        gui.start()
 
     # Run a single game before terminating.
     controller.run_game()

@@ -51,7 +51,7 @@ class GameState:
 
         # Observers (such as the GUI) can subscribe to this event.
         # For now, this fires when anything (relevant) happened, like players playing cards.
-        self.on_changed = Event()
+        self.ev_changed = Event()
 
     def clear_after_game(self):
         self.game_phase = GamePhase.pre_deal

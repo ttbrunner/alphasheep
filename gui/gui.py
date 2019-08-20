@@ -2,7 +2,7 @@ import pygame
 
 from game.card import new_deck
 from game.game_state import GameState
-from gui.deck_images import get_card_img_path
+from gui.assets import get_card_img_path
 from gui.utils import sorted_cards
 
 
@@ -21,10 +21,10 @@ class Gui:
         self.game_state = game_state
         self.resolution = resolution
         self.is_running = False
-        self.game_state.on_changed.subscribe(self.on_game_state_changed)                # TODO: This should be cleaned up.
+        self.game_state.ev_changed.subscribe(self.on_game_state_changed)                # TODO: This should be cleaned up.
 
-        self._screen = None
-        self._card_assets = None
+        self._screen = pygame.display.set_mode(self.resolution)                         # Display screen
+        self._card_assets = {card: pygame.image.load(get_card_img_path(card)).convert() for card in new_deck()}
         self._fps_clock = pygame.time.Clock()
         self._waiting_for_click = False
 
@@ -36,8 +36,7 @@ class Gui:
         # Surface in the middle, containing the "cards on the table".
         self._middle_trick_surf = pygame.Surface((300, 300))
 
-    def _load_assets(self):
-        self._card_assets = {card: pygame.image.load(get_card_img_path(card)).convert() for card in new_deck()}
+        pygame.display.set_caption("AlphaSau")
 
     def _draw_player_cards(self):
         # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the true card list.
@@ -108,11 +107,6 @@ class Gui:
             # Mouse button = stop drawing and return control.
             if event.type == pygame.MOUSEBUTTONUP:
                 self._waiting_for_click = False
-
-    def start(self):
-        self._screen = pygame.display.set_mode(self.resolution)               # Display screen
-        pygame.display.set_caption("AlphaSau")
-        self._load_assets()
 
     def on_game_state_changed(self):
         # Receiving this event when we should draw an update (and maybe pause).
