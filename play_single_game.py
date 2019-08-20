@@ -2,6 +2,7 @@
 Runs a single game with an interactive GUI. Use for debugging purposes, or just to see the agents play.
 """
 import argparse
+import logging
 
 from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
@@ -11,6 +12,7 @@ from game.game_state import Player
 
 from gui.gui import Gui
 from agents.agents import RandomCardAgent
+from log_util import init_logging, get_class_logger, get_named_logger
 
 
 def main():
@@ -18,6 +20,11 @@ def main():
     parser.add_argument("--disable_gui", help="Run without the GUI (not interactively).", action="store_true")
     args = parser.parse_args()
     run_with_gui = not args.disable_gui
+
+    # Init logging and adjust log levels for some classes.
+    init_logging()
+    logger = get_named_logger("play_single_game.main")
+    get_class_logger(GameController).setLevel(logging.DEBUG)
 
     players = [
         Player("0-Hans", agent=RandomCardAgent()),
@@ -43,7 +50,9 @@ def main():
         gui = Gui(controller.game_state)
 
     # Run a single game before terminating.
+    logger.info("Running a single game.")
     controller.run_game()
+    logger.info("Finished playing.")
 
 
 if __name__ == '__main__':

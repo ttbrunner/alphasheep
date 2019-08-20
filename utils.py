@@ -18,3 +18,5 @@ class Event:
     def notify(self):
         for subscriber_fn in self.subscribers:
             subscriber_fn()
+
+

@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 import numpy as np
@@ -6,6 +7,7 @@ from controller.dealing_behavior import DealFairly, DealingBehavior
 from game.card import Suit, pip_scores
 from game.game_mode import GameMode, GameContract
 from game.game_state import Player, GameState, GamePhase
+from log_util import get_class_logger
 
 
 class GameController:
@@ -18,10 +20,11 @@ class GameController:
         """
         assert len(players) == 4
 
-        print("Initializing game.")
-        print("Players:")
+        self.logger = get_class_logger(self)
+        self.logger.debug("Initializing game.")
+        self.logger.debug("Players:")
         for p in players:
-            print("Player {} with behavior {}.".format(p, p.agent))
+            self.logger.debug("Player {} with behavior {}.".format(p, p.agent))
 
         self.game_state = GameState(players)
         self.dealing_behavior = dealing_behavior
@@ -34,8 +37,7 @@ class GameController:
         """
 
         def log_phase():
-            print()
-            print("Entering Phase: {}".format(self.game_state.game_phase))
+            self.logger.debug("===== Entering Phase: {} =====".format(self.game_state.game_phase))
 
         assert self.game_state.game_phase == GamePhase.pre_deal
 
@@ -45,7 +47,7 @@ class GameController:
         # DEALING PHASE
         self.game_state.game_phase = GamePhase.dealing
         log_phase()
-        print("Player {} is dealing.".format(self.game_state.players[self.game_state.i_player_dealer]))
+        self.logger.debug("Player {} is dealing.".format(self.game_state.players[self.game_state.i_player_dealer]))
         hands = self.dealing_behavior.deal_hands()
         for i, p in enumerate(self.game_state.players):
             p.cards_in_hand = hands[i]
@@ -63,7 +65,7 @@ class GameController:
             # TODO: allow agents to bid & declare on their own
             game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=np.random.randint(4))
         i_decl = game_mode.declaring_player_id
-        print("Game Variant: Player {} is declaring a {}!".format(self.game_state.players[i_decl], game_mode))
+        self.logger.debug("Game Variant: Player {} is declaring a {}!".format(self.game_state.players[i_decl], game_mode))
         self.game_state.game_mode = game_mode
         self.game_state.ev_changed.notify()
 
@@ -74,21 +76,23 @@ class GameController:
 
         # POST-GAME PHASE
         # Count score and determine winner.
+        # TODO: For now, always scoring a solo.
         self.game_state.game_phase = GamePhase.post_play
         log_phase()
+
         player_scores = [sum(pip_scores[c.pip] for c in p.cards_in_scored_tricks) for p in self.game_state.players]
         for i, p in enumerate(self.game_state.players):
-            print("Player {} has score {}.".format(p, player_scores[i]))
-
-        # TODO: For now, always scoring a solo.
+            self.logger.debug("Player {} has score {}.".format(p, player_scores[i]))
         if player_scores[i_decl] > 60:
             player_win = [i == i_decl for i in range(4)]
         else:
             player_win = [i != i_decl for i in range(4)]
-        print("=> Player {} {} the {}!".format(self.game_state.players[i_decl], "wins" if player_win[i_decl] else "loses", game_mode))
-        print("Summary:")
+        self.logger.debug("=> Player {} {} the {}!".format(self.game_state.players[i_decl], "wins" if player_win[i_decl] else "loses",
+                                                           game_mode))
+
+        self.logger.debug("Summary:")
         for i, p in enumerate(self.game_state.players):
-            print("Player {} {}.".format(p, "wins" if player_win[i] else "loses"))
+            self.logger.debug("Player {} {}.".format(p, "wins" if player_win[i] else "loses"))
             p.agent.notify_game_result(player_win[i], own_score=player_scores[i])
         self.game_state.ev_changed.notify()
 
@@ -112,14 +116,16 @@ class GameController:
 
         # Playing 8 tricks
         for i_trick in range(8):
-            print(">>> Trick {}".format(i_trick + 1))
+            self.logger.debug("-- Trick {} --".format(i_trick + 1))
 
             # Players are playing in ascending order, starting with the leader.
             for i_p in (np.arange(4) + i_p_leader) % 4:
 
                 # Get next card from player agent.
                 player = game_state.players[i_p]
-                selected_card = player.agent.play_card(player.cards_in_hand, cards_in_trick=game_state.current_trick_cards, game_mode=game_mode)
+                selected_card = player.agent.play_card(player.cards_in_hand,
+                                                       cards_in_trick=game_state.current_trick_cards,
+                                                       game_mode=game_mode)
 
                 # CHECK 1: Does the player have that card?
                 # Again, this check is only for data integrity. More sophisticated logic (trying to play cards that are not available...)
@@ -127,10 +133,12 @@ class GameController:
                 assert selected_card in player.cards_in_hand
 
                 # CHECK 2: Do the rules allow the player to play that card?
-                if not game_mode.is_play_allowed(selected_card, cards_in_hand=player.cards_in_hand, cards_in_trick=game_state.current_trick_cards):
-                    raise print("Player {} tried to play {}, but it's not allowed!".format(player, selected_card))
+                if not game_mode.is_play_allowed(selected_card,
+                                                 cards_in_hand=player.cards_in_hand,
+                                                 cards_in_trick=game_state.current_trick_cards):
+                    raise ValueError("Player {} tried to play {}, but it's not allowed!".format(player, selected_card))
 
-                print("Player {} is playing {}.".format(player, selected_card))
+                self.logger.debug("Player {} is playing {}.".format(player, selected_card))
                 player.cards_in_hand.remove(selected_card)
                 game_state.current_trick_cards.append(selected_card)
                 game_state.ev_changed.notify()
@@ -140,7 +148,7 @@ class GameController:
             i_win_player = (i_p_leader + i_win_card) % 4
             win_card = game_state.current_trick_cards[i_win_card]
             win_player = game_state.players[i_win_player]
-            print("Player {} wins the trick with card {}.".format(win_player, win_card))
+            self.logger.debug("Player {} wins the trick with card {}.".format(win_player, win_card))
 
             # Move the trick to the scored cards of the winner.
             i_p_leader = i_win_player

@@ -24,7 +24,7 @@ class GamePhase(Enum):
     dealing = 1,
     bidding = 2,
     playing = 3,
-    post_play = 4,              # Time to determine the winner, cleanup, posthoc analysis.
+    post_play = 4,              # Time to determine the winner, cleanup, post-hoc analysis.
 
 
 class GameState:

@@ -51,7 +51,7 @@ class DQNAgent(PlayerAgent):
         # Experience replay buffer for minibatch learning
         self.experience_buffer = deque(maxlen=2000)
 
-        # Create Q network (current state) and Target network (successor state). Every TODO?N steps, the target is updated.
+        # Create Q network (current state) and Target network (successor state). The networks are synced after every episode (game).
         self.q_network = self._build_model()
         self.target_network = self._build_model()
         self._align_target_model()
@@ -88,15 +88,15 @@ class DQNAgent(PlayerAgent):
             for i_ex in indices:
                 state, action, reward, next_state, terminated = self.experience_buffer[i_ex]
 
-                target = self.q_network.predict(state[np.newaxis, :])
+                target = self.q_network.predict(state[np.newaxis, :])[0]
 
                 if terminated:
-                    target[0][action] = reward
+                    target[action] = reward
                 else:
-                    t = self.target_network.predict(next_state)
-                    target[0][action] = reward + self._gamma * np.amax(t)
+                    t = self.target_network.predict(next_state[np.newaxis, :])[0]
+                    target[action] = reward + self._gamma * np.amax(t)
 
-                self.q_network.fit(state, target, epochs=1, verbose=0)
+                self.q_network.fit(state[np.newaxis, :], target[np.newaxis, :], epochs=1, verbose=0)
 
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):
         assert cards_in_trick is not None, "Empty list is allowed, None is not."
@@ -128,7 +128,7 @@ class DQNAgent(PlayerAgent):
         else:
             # Exploit: Predict q-values for the current state and select the best action/card that is allowed.
             q_values = self.q_network.predict(state[np.newaxis, :])[0]
-            i_best_actions = np.argsort(q_values)[::-1]         # TODO: debug to make sure this is correct
+            i_best_actions = np.argsort(q_values)[::-1]
             for i_action in i_best_actions:
                 card = self._cards[i_action]
                 if card in cards_in_hand and game_mode.is_play_allowed(card, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick):
