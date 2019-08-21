@@ -2,6 +2,7 @@
 Runs a large number of games without the GUI. Use this to train an agent.
 """
 import logging
+from collections import deque
 
 from agents.agents import RandomCardAgent
 from agents.dqn_agent import DQNAgent
@@ -46,16 +47,33 @@ def main():
     controller = GameController(players, dealing_behavior=DealWinnableHand(game_mode), forced_game_mode=game_mode)
 
     n_episodes = 10000000
+
+    # Calculate win% as moving average.
     n_won = 0
+    sma_window_len = 1000
+    won_deque = deque()
+
     time_start = timer()
     for i_episode in range(n_episodes):
-        if i_episode % 100 == 0 and i_episode > 0:
-            s_elapsed = timer() - time_start
-            logger.info("Ran {} Episodes. Win rate is {:.1%}. Speed is {:.0f} episodes/second.".format(
-                i_episode, n_won/i_episode, i_episode/s_elapsed))
+        # Calculate SMA:
+        if i_episode > 0:
+            if i_episode < sma_window_len:
+                win_rate = n_won / i_episode
+            else:
+                if won_deque.popleft() is True:
+                    n_won -= 1
+                win_rate = n_won / sma_window_len
+
+            # Log.
+            if i_episode % 100 == 0 and i_episode > 0:
+                s_elapsed = timer() - time_start
+                logger.info("Ran {} Episodes. Win rate (last {} episodes) is {:.1%}. Speed is {:.0f} episodes/second.".format(
+                    i_episode, sma_window_len, win_rate, i_episode/s_elapsed))
 
         winners = controller.run_game()
-        if winners[0]:
+        won = winners[0]
+        won_deque.append(won)
+        if won:
             n_won += 1
 
     logger.info("Finished playing.")

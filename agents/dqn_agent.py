@@ -127,8 +127,7 @@ class DQNAgent(PlayerAgent):
         exp_reward = reward_batch.copy()
         exp_reward[nonterminal_filter] += self._gamma * np.amax(q_next, axis=1)[nonterminal_filter]
 
-        # FIXME: THis has wrong dimensions -- of all the q values, we only want to change the ones that correspond
-        #  to the experienced actions. So we want to filter the second dimension by the one-hot action filter.
+        # Update the Q-value for the actions that were picked. Leave the rest the same.
         q_target = q_curr.copy()
         q_target[np.arange(self._batch_size), action_id_batch] = exp_reward
 
