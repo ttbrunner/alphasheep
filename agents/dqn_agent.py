@@ -60,6 +60,12 @@ class DQNAgent(PlayerAgent):
         self._align_target_model()
         self._batch_size = 16
 
+        # Don't retrain after every single experience.
+        # If we retrain every time, then the probability of a new experience actually being in the training batch is super low.
+        # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing (expensive) training.
+        self._retrain_every_n = self._batch_size
+        self._experiences_since_last_retrain = 0
+
         # Remember the state and action (card) played in the previous trick, so we can can judge it once we receive feedback.
         self._prev_state = None
         self._prev_action = None
@@ -85,39 +91,48 @@ class DQNAgent(PlayerAgent):
 
         self.experience_buffer.append((state, action, reward, next_state, terminated))
 
-        if len(self.experience_buffer) >= self._batch_size:
-            indices = np.random.choice(len(self.experience_buffer), size=self._batch_size)
+        self._experiences_since_last_retrain += 1
+        if self._experiences_since_last_retrain < self._retrain_every_n:
+            return
 
-            state_batch = np.empty(shape=(self._batch_size, self._state_size), dtype=np.int32)
-            action_id_batch = np.empty(shape=self._batch_size, dtype=np.int32)
-            reward_batch = np.empty(shape=self._batch_size, dtype=np.float32)
-            next_state_batch = np.empty(shape=(self._batch_size, self._state_size), dtype=np.int32)
-            terminated_batch = np.empty(shape=self._batch_size, dtype=np.bool)
+        if len(self.experience_buffer) < self._batch_size:
+            return
 
-            for i, index in enumerate(indices):
-                state, action, reward, next_state, terminated = self.experience_buffer[index]
-                state_batch[i, :] = state
-                action_id_batch[i] = np.argmax(action)
-                reward_batch[i] = reward
-                next_state_batch[i, :] = next_state
-                terminated_batch[i] = terminated
+        # Train one minibatch from the experience replay buffer.
+        self._experiences_since_last_retrain = 0
 
-            q_curr = self.q_network.predict(state_batch)
-            q_next = self.target_network.predict(next_state_batch)
+        indices = np.random.choice(len(self.experience_buffer), size=self._batch_size)
 
-            # Terminal state: the cumulative reward is exactly the observation.
-            # Nonterminal state: the cumulative reward is the observation + expected future reward
-            # TODO on Gamma: do we need this distinction? If we assign 1 at the end, then we are strictly episodic anyway.
-            nonterminal_filter = (terminated_batch == 0)
-            exp_reward = reward_batch.copy()
-            exp_reward[nonterminal_filter] += self._gamma * np.amax(q_next, axis=1)[nonterminal_filter]
+        state_batch = np.empty(shape=(self._batch_size, self._state_size), dtype=np.int32)
+        action_id_batch = np.empty(shape=self._batch_size, dtype=np.int32)
+        reward_batch = np.empty(shape=self._batch_size, dtype=np.float32)
+        next_state_batch = np.empty(shape=(self._batch_size, self._state_size), dtype=np.int32)
+        terminated_batch = np.empty(shape=self._batch_size, dtype=np.bool)
 
-            # FIXME: THis has wrong dimensions -- of all the q values, we only want to change the ones that correspond
-            #  to the experienced actions. So we want to filter the second dimension by the one-hot action filter.
-            q_target = q_curr.copy()
-            q_target[np.arange(self._batch_size), action_id_batch] = exp_reward
+        for i, index in enumerate(indices):
+            state, action, reward, next_state, terminated = self.experience_buffer[index]
+            state_batch[i, :] = state
+            action_id_batch[i] = np.argmax(action)
+            reward_batch[i] = reward
+            next_state_batch[i, :] = next_state
+            terminated_batch[i] = terminated
 
-            self.q_network.fit(state_batch, q_target, epochs=1, verbose=0)
+        q_curr = self.q_network.predict(state_batch)
+        q_next = self.target_network.predict(next_state_batch)
+
+        # Terminal state: the cumulative reward is exactly the observation.
+        # Nonterminal state: the cumulative reward is the observation + expected future reward
+        # TODO on Gamma: do we need this distinction? If we assign 1 at the end, then we are strictly episodic anyway.
+        nonterminal_filter = (terminated_batch == 0)
+        exp_reward = reward_batch.copy()
+        exp_reward[nonterminal_filter] += self._gamma * np.amax(q_next, axis=1)[nonterminal_filter]
+
+        # FIXME: THis has wrong dimensions -- of all the q values, we only want to change the ones that correspond
+        #  to the experienced actions. So we want to filter the second dimension by the one-hot action filter.
+        q_target = q_curr.copy()
+        q_target[np.arange(self._batch_size), action_id_batch] = exp_reward
+
+        self.q_network.fit(state_batch, q_target, epochs=1, verbose=0)
 
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):
         assert cards_in_trick is not None, "Empty list is allowed, None is not."
