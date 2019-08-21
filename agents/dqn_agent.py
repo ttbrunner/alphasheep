@@ -8,6 +8,7 @@ from tensorflow.python.keras.optimizers import Adam
 from agents.agents import PlayerAgent
 from game.card import Card, new_deck
 from game.game_mode import GameMode
+from log_util import get_class_logger
 
 
 class DQNAgent(PlayerAgent):
@@ -22,6 +23,8 @@ class DQNAgent(PlayerAgent):
     """
 
     def __init__(self):
+        self.logger = get_class_logger(self)
+
         # In both states and actions, cards are encoded as one-hot vectors of size 32.
         # Providing indices to perform quick lookups: i->card->i
         self._cards = new_deck()
@@ -55,7 +58,7 @@ class DQNAgent(PlayerAgent):
         self.q_network = self._build_model()
         self.target_network = self._build_model()
         self._align_target_model()
-        self._batch_size = 16
+        self._batch_size = 32
 
         # Remember the state and action (card) played in the previous trick, so we can can judge it once we receive feedback.
         self._prev_state = None
@@ -65,7 +68,8 @@ class DQNAgent(PlayerAgent):
     def _build_model(self):
         model = Sequential()
         # TODO: Is this state embedding (everything one-hot) suitable?
-        model.add(Dense(128, activation='relu', input_shape=(self._state_size,)))
+        model.add(Dense(256, activation='relu', input_shape=(self._state_size,)))
+        model.add(Dense(128, activation='relu'))
         model.add(Dense(64, activation='relu'))
         model.add(Dense(self._action_size, activation='linear'))
 
@@ -84,26 +88,43 @@ class DQNAgent(PlayerAgent):
         if len(self.experience_buffer) >= self._batch_size:
             indices = np.random.choice(len(self.experience_buffer), size=self._batch_size)
 
-            # TODO: This is SGD training with Batchsize=1!? We should batch that (once it's working)!
-            for i_ex in indices:
-                state, action, reward, next_state, terminated = self.experience_buffer[i_ex]
+            state_batch = np.empty(shape=(self._batch_size, self._state_size), dtype=np.int32)
+            action_id_batch = np.empty(shape=self._batch_size, dtype=np.int32)
+            reward_batch = np.empty(shape=self._batch_size, dtype=np.float32)
+            next_state_batch = np.empty(shape=(self._batch_size, self._state_size), dtype=np.int32)
+            terminated_batch = np.empty(shape=self._batch_size, dtype=np.bool)
 
-                target = self.q_network.predict(state[np.newaxis, :])[0]
+            for i, index in enumerate(indices):
+                state, action, reward, next_state, terminated = self.experience_buffer[index]
+                state_batch[i, :] = state
+                action_id_batch[i] = np.argmax(action)
+                reward_batch[i] = reward
+                next_state_batch[i, :] = next_state
+                terminated_batch[i] = terminated
 
-                if terminated:
-                    target[action] = reward
-                else:
-                    t = self.target_network.predict(next_state[np.newaxis, :])[0]
-                    target[action] = reward + self._gamma * np.amax(t)
+            q_curr = self.q_network.predict(state_batch)
+            q_next = self.target_network.predict(next_state_batch)
 
-                self.q_network.fit(state[np.newaxis, :], target[np.newaxis, :], epochs=1, verbose=0)
+            # Terminal state: the cumulative reward is exactly the observation.
+            # Nonterminal state: the cumulative reward is the observation + expected future reward
+            # TODO on Gamma: do we need this distinction? If we assign 1 at the end, then we are strictly episodic anyway.
+            nonterminal_filter = (terminated_batch == 0)
+            exp_reward = reward_batch.copy()
+            exp_reward[nonterminal_filter] += self._gamma * np.amax(q_next, axis=1)[nonterminal_filter]
+
+            # FIXME: THis has wrong dimensions -- of all the q values, we only want to change the ones that correspond
+            #  to the experienced actions. So we want to filter the second dimension by the one-hot action filter.
+            q_target = q_curr.copy()
+            q_target[np.arange(self._batch_size), action_id_batch] = exp_reward
+
+            self.q_network.fit(state_batch, q_target, epochs=1, verbose=0)
 
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):
         assert cards_in_trick is not None, "Empty list is allowed, None is not."
         if self._in_terminal_state:
             raise ValueError("Agent is in terminal state. Did you start a new game? Need to call notify_new_game() first.")
 
-        # Encode the state.
+        # Encode the state. TODO: replace state and action with bool!
         state = np.zeros(shape=self._state_size, dtype=np.int32)
         for card in cards_in_hand:
             state[self._card_indices[card]] = 1

@@ -31,9 +31,10 @@ class GameController:
         self.forced_game_mode = forced_game_mode
         assert forced_game_mode is None or forced_game_mode.declaring_player_id is not None, "Must provide a specific player."
 
-    def run_game(self):
+    def run_game(self) -> List[bool]:
         """
         Runs a single game (and shifts the dealing player clockwise). Can be called multiple times.
+        :returns a list of 4 bools, indicating which player(s) won the game.
         """
 
         def log_phase():
@@ -102,6 +103,8 @@ class GameController:
         self.game_state.clear_after_game()
         self.game_state.i_player_dealer = (self.game_state.i_player_dealer + 1) % 4
         self.game_state.ev_changed.notify()
+
+        return player_win
 
     def _playing_phase(self):
         # Main phase of the game (trick taking).
