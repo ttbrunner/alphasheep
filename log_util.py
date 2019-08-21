@@ -6,7 +6,6 @@ I feel like this is not the best way to do things... I'm happy if you can sugges
 """
 
 import logging
-import absl.logging
 
 ROOT_NAME = ""
 
@@ -16,12 +15,16 @@ def init_logging():
     Initializes a root logger and defines the log outputs. The root logger (and all others) have a default loglevel of INFO.
     """
 
-    # TensorFlow uses Abseil logging, which interferes with our logging. Apparently they have fixed it, but it's not yet live.
-    # Using this workaround in the meantime.
-    # https://github.com/abseil/abseil-py/issues/99
-    # https://github.com/abseil/abseil-py/issues/102
-    logging.root.removeHandler(absl.logging._absl_handler)
-    absl.logging._warn_preinit_stderr = False
+    try:
+        import absl.logging
+        # TensorFlow uses Abseil logging, which interferes with our logging. Apparently they have fixed it, but it's not yet live.
+        # Using this workaround in the meantime.
+        # https://github.com/abseil/abseil-py/issues/99
+        # https://github.com/abseil/abseil-py/issues/102
+        logging.root.removeHandler(absl.logging._absl_handler)
+        absl.logging._warn_preinit_stderr = False
+    except Exception:
+        pass
 
     # Get root logger
     logger = logging.getLogger(ROOT_NAME)
