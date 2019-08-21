@@ -58,7 +58,7 @@ class DQNAgent(PlayerAgent):
         self.q_network = self._build_model()
         self.target_network = self._build_model()
         self._align_target_model()
-        self._batch_size = 32
+        self._batch_size = 16
 
         # Remember the state and action (card) played in the previous trick, so we can can judge it once we receive feedback.
         self._prev_state = None
@@ -73,7 +73,7 @@ class DQNAgent(PlayerAgent):
         model.add(Dense(64, activation='relu'))
         model.add(Dense(self._action_size, activation='linear'))
 
-        optimizer = Adam(lr=0.01)
+        optimizer = Adam(lr=0.001)
         model.compile(loss='mse', optimizer=optimizer)
         return model
 

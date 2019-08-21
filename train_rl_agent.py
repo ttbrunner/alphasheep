@@ -58,7 +58,6 @@ def main():
         if winners[0]:
             n_won += 1
 
-
     logger.info("Finished playing.")
     logger.info("Total win rate: {:.1%}".format(n_won/n_episodes))
 
