@@ -1,7 +1,9 @@
 """
 Runs a large number of games without the GUI. Use this to train an agent.
 """
+import argparse
 import logging
+import os
 from collections import deque
 
 from agents.agents import RandomCardAgent
@@ -20,43 +22,53 @@ def main():
     # - Every game has the ego player (id 0) playing a Herz-Solo.
     # - The cards are rigged so that the ego player always receives a pretty good hand, most of them are winnable.
     # - The 3 enemies are all RandomCardAgents - for now.
-    #
-    # Observations so far:
-    # - If the ego player is also a RandomCardAgent(), they have a 60.4% win rate (averaged over 100k games).
-    # - The RL player should manage to beat that.
-    #
-    # Next steps:
-    # - See what happens - can the DQN agent learn a win percentage that is significantly higher?
-    # - Speed up learning
 
-    players = [
-        Player("0-AlphaSau", agent=DQNAgent()),
-        Player("1-Zenzi", agent=RandomCardAgent()),
-        Player("2-Franz", agent=RandomCardAgent()),
-        Player("3-Andal", agent=RandomCardAgent())
-    ]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--weights_path", help="Weights are loaded and periodically saved to this file.", required=False)
+    args = parser.parse_args()
+    weights_path = args.weights_path
 
     # Init logging and adjust log levels for some classes.
     init_logging()
     logger = get_named_logger("train_rl_agent.main")
     get_class_logger(GameController).setLevel(logging.INFO)
 
-    # Rig the game so Player 0 has the cards to play a Herz-Solo.
-    # Also, force them to play it.
+    alphasau_agent = DQNAgent()
+    if weights_path is not None:
+        if not os.path.exists(weights_path):
+            logger.info('Weights file "{}" does not exist. Will create new file.')
+        else:
+            logger.info('Loading weights from "{}..."'.format(weights_path))
+            alphasau_agent.load_weights(weights_path)
+
+    players = [
+        Player("0-AlphaSau", agent=alphasau_agent),
+        Player("1-Zenzi", agent=RandomCardAgent()),
+        Player("2-Franz", agent=RandomCardAgent()),
+        Player("3-Andal", agent=RandomCardAgent())
+    ]
+
+    # Rig the game so Player 0 has the cards to play a Herz-Solo. Force them to play it.
     game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=0)
     controller = GameController(players, dealing_behavior=DealWinnableHand(game_mode), forced_game_mode=game_mode)
 
-    n_episodes = 10000000
+    # Train virtually forever.
+    n_episodes = 100000000
 
-    # Calculate win% as moving average.
+    # Calculate win% as simple moving average.
+    win_rate = float('nan')
     n_won = 0
     sma_window_len = 1000
     won_deque = deque()
 
+    save_every_s = 60
+
     time_start = timer()
+    time_last_save = timer()
     for i_episode in range(n_episodes):
-        # Calculate SMA:
+
         if i_episode > 0:
+            # Calculate avg win%
             if i_episode < sma_window_len:
                 win_rate = n_won / i_episode
             else:
@@ -64,11 +76,17 @@ def main():
                     n_won -= 1
                 win_rate = n_won / sma_window_len
 
-            # Log.
-            if i_episode % 100 == 0 and i_episode > 0:
+            # Log
+            if i_episode % 100 == 0:
                 s_elapsed = timer() - time_start
                 logger.info("Ran {} Episodes. Win rate (last {} episodes) is {:.1%}. Speed is {:.0f} episodes/second.".format(
                     i_episode, sma_window_len, win_rate, i_episode/s_elapsed))
+
+            # Save model checkpoint
+            if weights_path is not None and timer() - time_last_save > save_every_s:
+                alphasau_agent.save_weights(weights_path, overwrite=True)
+                time_last_save = timer()
+                logger.info('Saved weights to "{}".'.format(weights_path))
 
         winners = controller.run_game()
         won = winners[0]
@@ -77,7 +95,7 @@ def main():
             n_won += 1
 
     logger.info("Finished playing.")
-    logger.info("Total win rate: {:.1%}".format(n_won/n_episodes))
+    logger.info("Final win rate: {:.1%}".format(win_rate))
 
 
 if __name__ == '__main__':

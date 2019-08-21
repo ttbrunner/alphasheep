@@ -206,3 +206,10 @@ class DQNAgent(PlayerAgent):
         self._prev_state = None
         self._prev_action = None
         self._in_terminal_state = False
+
+    def save_weights(self, filepath, overwrite=True):
+        self.q_network.save_weights(filepath, overwrite=overwrite)
+
+    def load_weights(self, filepath):
+        self.q_network.load_weights(filepath)
+        self._align_target_model()
