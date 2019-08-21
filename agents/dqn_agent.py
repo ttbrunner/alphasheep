@@ -54,22 +54,22 @@ class DQNAgent(PlayerAgent):
         # Experience replay buffer for minibatch learning
         self.experience_buffer = deque(maxlen=2000)
 
-        # Create Q network (current state) and Target network (successor state). The networks are synced after every episode (game).
-        self.q_network = self._build_model()
-        self.target_network = self._build_model()
-        self._align_target_model()
-        self._batch_size = 16
-
-        # Don't retrain after every single experience.
-        # If we retrain every time, then the probability of a new experience actually being in the training batch is super low.
-        # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing (expensive) training.
-        self._retrain_every_n = self._batch_size
-        self._experiences_since_last_retrain = 0
-
         # Remember the state and action (card) played in the previous trick, so we can can judge it once we receive feedback.
         self._prev_state = None
         self._prev_action = None
         self._in_terminal_state = False
+
+        # Create Q network (current state) and Target network (successor state). The networks are synced after every episode (game).
+        self.q_network = self._build_model()
+        self.target_network = self._build_model()
+        self._align_target_model()
+        self._batch_size = 32
+
+        # Don't retrain after every single experience.
+        # If we retrain every time, then the probability of a new experience actually being in the training batch is super low.
+        # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing (expensive) training.
+        self._retrain_every_n = 16
+        self._experiences_since_last_retrain = 0
 
     def _build_model(self):
         model = Sequential()
