@@ -42,7 +42,7 @@ class Card:
         self._unique_hash = hash(Card) * 23 + self.suit.value * 23 + self.pip.value
 
     def __str__(self):
-        return "({} {})".format(self.suit, self.pip)
+        return "({} {})".format(self.suit.name, self.pip.name)
 
     def __eq__(self, other):
         return isinstance(other, Card) and self._unique_hash == other._unique_hash

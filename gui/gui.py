@@ -1,7 +1,8 @@
 import pygame
+import pygame.freetype
 
-from game.card import new_deck
-from game.game_state import GameState
+from game.card import new_deck, pip_scores
+from game.game_state import GameState, GamePhase
 from gui.assets import get_card_img_path
 from gui.utils import sorted_cards
 
@@ -30,11 +31,17 @@ class Gui:
 
         # Every player has a "Card surface" onto which their cards are drawn.
         # This card surface is then rotated and translated into position.
-        card_surf_dims = (310, 170)
-        self._player_card_surfs = [pygame.Surface(card_surf_dims) for _ in range(4)]
+        p_card_surf_dims = (310, 170)
+        p_text_surf_dims = (200, 140)
+        self._player_card_surfs = [pygame.Surface(p_card_surf_dims) for _ in range(4)]
+        self._player_text_surfs = [pygame.Surface(p_text_surf_dims) for _ in range(4)]
 
         # Surface in the middle, containing the "cards on the table".
         self._middle_trick_surf = pygame.Surface((300, 300))
+
+        pygame.freetype.init()
+        self._font = pygame.freetype.SysFont("Courier New", 12)
+        self._font.antialiased = False
 
         pygame.display.set_caption("AlphaSau")
 
@@ -52,9 +59,9 @@ class Gui:
 
         # Finally, draw the card surfaces onto the board.
         self._screen.blit(self._player_card_surfs[0], (475, 600))                                       # 0: Bottom
-        self._screen.blit(pygame.transform.rotate(self._player_card_surfs[1], 270), (30, 220))          # 1: Left
+        self._screen.blit(pygame.transform.rotate(self._player_card_surfs[1], 270), (30, 200))          # 1: Left
         self._screen.blit(pygame.transform.rotate(self._player_card_surfs[2], 180), (475, 30))          # 2: Top
-        self._screen.blit(pygame.transform.rotate(self._player_card_surfs[3], 90), (1080, 170))         # 3: Right
+        self._screen.blit(pygame.transform.rotate(self._player_card_surfs[3], 90), (1080, 200))         # 3: Right
 
     def _draw_current_trick_cards(self):
         # Draw the cards that are "on the table".
@@ -82,6 +89,49 @@ class Gui:
 
         self._screen.blit(self._middle_trick_surf, (480, 260))
 
+    def _draw_player_text(self):
+
+        decl_pid = None
+        if self.game_state.game_mode is not None:
+            decl_pid = self.game_state.game_mode.declaring_player_id
+
+        txt_color = pygame.Color("#CCCCCC")
+        red_color = pygame.Color("#FF0000")
+        green_color = pygame.Color("#55FF55")
+        for i, p in enumerate(self.game_state.players):
+            score = sum(pip_scores[c.pip] for c in p.cards_in_scored_tricks)
+            won = (score > 60) if i == decl_pid else (score >= 60)
+
+            y = 0
+            self._player_text_surfs[i].fill((0, 0, 0))
+            self._font.render_to(self._player_text_surfs[i], (0, y), f"Player: {p.name}", fgcolor=txt_color)
+            y += 20
+
+            if i == self.game_state.i_player_dealer:
+                self._font.render_to(self._player_text_surfs[i], (0, y), f"(Dealer)", fgcolor=txt_color)
+                y += 20
+
+            if p == self.game_state.leading_player:
+                self._font.render_to(self._player_text_surfs[i], (0, y), f"(Leading)", fgcolor=txt_color)
+                y += 20
+
+            if i == decl_pid:
+                self._font.render_to(self._player_text_surfs[i], (0, y), f"Playing a {self.game_state.game_mode}", fgcolor=red_color)
+                y += 20
+
+            self._font.render_to(self._player_text_surfs[i], (0, y), f"Score: {score}", fgcolor=green_color if won else txt_color)
+            y += 20
+
+            if self.game_state.game_phase == GamePhase.post_play and i == decl_pid:
+                self._font.render_to(self._player_text_surfs[i], (0, y), "Won!" if won else "Lost!", fgcolor=green_color if won else red_color)
+
+        self._screen.blit(self._player_text_surfs[0], (800, 600))
+        self._screen.blit(self._player_text_surfs[1], (30, 520))
+        self._screen.blit(self._player_text_surfs[2], (800, 30))
+        self._screen.blit(self._player_text_surfs[3], (1080, 520))
+
+        pass
+
     def _draw_frame(self):
         # Draws a single frame and returns control.
 
@@ -89,7 +139,9 @@ class Gui:
         self._screen.fill((0, 0, 0))     # Black background
         self._draw_player_cards()
         self._draw_current_trick_cards()
+        self._draw_player_text()
 
+        pygame.display.update()
         pygame.display.flip()               # Flip buffers
 
     def _handle_pygame_events(self):
@@ -111,7 +163,7 @@ class Gui:
     def on_game_state_changed(self):
         # Receiving this event when we should draw an update (and maybe pause).
 
-        # Run draw loop until a click was received.
+        # Run draw loop until a click is received.
         self._waiting_for_click = True
         while self._waiting_for_click:
             self._handle_pygame_events()

@@ -43,9 +43,9 @@ class GameMode:
 
     def __str__(self):
         if self.contract == GameContract.suit_solo:
-            return "({} solo)".format(self.trump_suit)
+            return "({} solo)".format(self.trump_suit.name)
         elif self.contract == GameContract.rufspiel:
-            return "(rufspiel: auf die {} sau)".format(self.ruf_suit)
+            return "(rufspiel: auf die {} sau)".format(self.ruf_suit.name)
         else:
             return "({})".format(self.contract)
 
