@@ -5,6 +5,7 @@ import argparse
 import logging
 import os
 
+from agents.dqn_agent import DQNAgent
 from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
 from game.card import Suit
@@ -19,16 +20,25 @@ from log_util import init_logging, get_class_logger, get_named_logger
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--disable_gui", help="Run without the GUI (not interactively).", action="store_true")
+    parser.add_argument("--alphasau_checkpoint", help="Checkpoint for AlphaSau. If not provided, the baseline will play.", required=False)
     args = parser.parse_args()
     run_with_gui = not args.disable_gui
+    as_checkpoint_path = args.alphasau_checkpoint
 
     # Init logging and adjust log levels for some classes.
     init_logging()
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.DEBUG)        # Log every single card.
 
+    if as_checkpoint_path is not None:
+        alphasau_agent = DQNAgent(training=False)
+        alphasau_agent.load_weights(as_checkpoint_path)
+        p0 = Player("0-AlphaSau", agent=alphasau_agent)
+    else:
+        p0 = Player("0-Hans", agent=RandomCardAgent())
+
     players = [
-        Player("0-Hans", agent=RandomCardAgent()),
+        p0,
         Player("1-Zenzi", agent=RandomCardAgent()),
         Player("2-Franz", agent=RandomCardAgent()),
         Player("3-Andal", agent=RandomCardAgent())
@@ -51,9 +61,10 @@ def main():
         gui = Gui(controller.game_state)
 
     # Run a single game before terminating.
-    logger.info("Running a single game.")
-    controller.run_game()
-    logger.info("Finished playing.")
+    logger.info("Starting game loop...")
+    while True:
+        controller.run_game()
+    # logger.info("Finished playing.")
 
 
 if __name__ == '__main__':
