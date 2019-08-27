@@ -4,10 +4,10 @@ Changing the values might affect the order of the state/action space of agents, 
 saved model checkpoints.
 """
 
-from enum import Enum
+from enum import IntEnum
 
 
-class Suit(Enum):
+class Suit(IntEnum):
     schellen = 0
     herz = 1
     gras = 2
@@ -17,7 +17,7 @@ class Suit(Enum):
         return self.name
 
 
-class Pip(Enum):
+class Pip(IntEnum):
     sieben = 1
     acht = 2
     neun = 3
@@ -36,14 +36,19 @@ class Card:
         self.suit = suit
         self.pip = pip
 
+        # There are some performance problems doing enum lookups, apparently Python implements them in a bit of a convoluted way.
+        # We often use Card as a dict key, so this has turned out to be a bit problematic. It turns out to be much faster
+        # to just precalc a unique card ID instead of comparing suits and pips (Python 3.5).
+        self._unique_hash = hash(Card) * 23 + self.suit.value * 23 + self.pip.value
+
     def __str__(self):
         return "({} {})".format(self.suit, self.pip)
 
     def __eq__(self, other):
-        return isinstance(other, Card) and self.suit == other.suit and self.pip == other.pip
+        return isinstance(other, Card) and self._unique_hash == other._unique_hash
 
     def __hash__(self):
-        return hash(self.suit) * 23 + hash(self.pip.value)
+        return self._unique_hash
 
 
 pip_scores = {
