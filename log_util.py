@@ -49,7 +49,7 @@ def init_logging():
 
 def get_class_logger(c):
     # Can provide either a class or an instance of it (lazy)
-    if c.__class__ is not type:
+    if not isinstance(c, type):
         c = c.__class__
 
     # Only using class name now, not the class+module name as that just clutters the output.

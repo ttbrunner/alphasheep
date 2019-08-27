@@ -175,6 +175,8 @@ class DQNAgent(PlayerAgent):
                     selected_card = card
                     break
 
+            self.logger.debug("Q values: " + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
+
         if selected_card is None:
             raise ValueError("Could not find a valid card! Please debug. Sorry.")
 
