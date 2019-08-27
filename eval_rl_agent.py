@@ -1,6 +1,4 @@
-"""
-Runs a large number of games without the GUI. Use this to train an agent.
-"""
+
 import argparse
 import logging
 import os
@@ -18,13 +16,9 @@ from timeit import default_timer as timer
 
 
 def main():
-    # Game Setup:
-    # - Every game has the ego player (id 0) playing a Herz-Solo.
-    # - The cards are rigged so that the ego player always receives a pretty good hand, most of them are winnable.
-    # - The 3 enemies are all RandomCardAgents - for now.
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--weights_path", help="Weights are loaded and periodically saved to this file.", required=False)
+    parser.add_argument("weights_path", help="Weights are loaded from this file.")
     args = parser.parse_args()
     weights_path = args.weights_path
 

@@ -10,21 +10,25 @@ import logging
 ROOT_NAME = ""
 
 
+def _fix_absl():
+    # TensorFlow uses Abseil logging, which interferes with our logging and duplicates messages.
+    # Apparently they have fixed it, but it's not yet live. Using this workaround in the meantime.
+    # https://github.com/abseil/abseil-py/issues/99
+    # https://github.com/abseil/abseil-py/issues/102
+    try:
+        import absl.logging
+        logging.root.removeHandler(absl.logging._absl_handler)
+        absl.logging._warn_preinit_stderr = False
+    except ImportError:
+        pass
+
+
 def init_logging():
     """
     Initializes a root logger and defines the log outputs. The root logger (and all others) have a default loglevel of INFO.
     """
 
-    try:
-        import absl.logging
-        # TensorFlow uses Abseil logging, which interferes with our logging. Apparently they have fixed it, but it's not yet live.
-        # Using this workaround in the meantime.
-        # https://github.com/abseil/abseil-py/issues/99
-        # https://github.com/abseil/abseil-py/issues/102
-        logging.root.removeHandler(absl.logging._absl_handler)
-        absl.logging._warn_preinit_stderr = False
-    except Exception:
-        pass
+    _fix_absl()
 
     # Get root logger
     logger = logging.getLogger(ROOT_NAME)

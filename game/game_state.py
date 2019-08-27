@@ -12,8 +12,8 @@ class Player:
         self.name = name
         self.agent = agent
 
-        self.cards_in_hand = []
-        self.cards_in_scored_tricks = []
+        self.cards_in_hand = set()              # Unordered
+        self.cards_in_scored_tricks = []        # Order of playing is important
 
     def __str__(self):
         return "({})".format(self.name)

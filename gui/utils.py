@@ -1,8 +1,10 @@
+from typing import Iterable, List
+
 from game.card import Card, Pip, Suit
 from game.game_mode import GameMode, GameContract
 
 
-def sorted_cards(cards, game_mode: GameMode):
+def sorted_cards(cards: Iterable[Card], game_mode: GameMode) -> List[Card]:
     # For easier display: sort all cards in descending order, starting with Trump.
 
     # If no game has been selected (yet), sort as if expecting a Herz-solo (same as any Rufspiel).

@@ -48,8 +48,10 @@
 - DQNAgent: Add eps-decay (for exploration)
 - DQNAgent: Experiment with discount... the task is episodic, so it should work without?
 - DQNAgent: Add inference mode (no exploration)
+- DQNAgent: Expand state representation (history of tricks, mapping of cards to players)
 - Training: Add eval script that runs parallel to training and tests a single snapshot of the agent.
 - Eval: Write an agent that is the "best out of 100 RandomCardAgents" that play the same game, so we can determine how "winnable" a game really is. Then the performance measure can be "%of winnable games won" instead of total.
+- After all that is working: test other game modes, and add bidding to Agents
 
 
 ## Prior work (might come in handy):

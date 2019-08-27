@@ -3,6 +3,7 @@ Runs a single game with an interactive GUI. Use for debugging purposes, or just 
 """
 import argparse
 import logging
+import os
 
 from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
@@ -23,7 +24,7 @@ def main():
 
     # Init logging and adjust log levels for some classes.
     init_logging()
-    logger = get_named_logger("play_single_game.main")
+    logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.DEBUG)        # Log every single card.
 
     players = [

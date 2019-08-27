@@ -39,7 +39,7 @@ class Gui:
         pygame.display.set_caption("AlphaSau")
 
     def _draw_player_cards(self):
-        # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the true card list.
+        # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the Player object.
         # NOTE: this is recalculated on every draw and kinda wasteful. Might want to do lazy-updating if we need UI performance.
         player_cards = [sorted_cards(cards, game_mode=self.game_state.game_mode) for cards in
                         (player.cards_in_hand for player in self.game_state.players)]
