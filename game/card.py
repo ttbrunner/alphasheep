@@ -1,3 +1,9 @@
+"""
+WARN: DO NOT CHANGE THE ENUMS IN THIS FILE!
+Changing the values might affect the order of the state/action space of agents, and will break compatibility with previously
+saved model checkpoints.
+"""
+
 from enum import Enum
 
 

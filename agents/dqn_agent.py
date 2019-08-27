@@ -193,6 +193,7 @@ class DQNAgent(PlayerAgent):
         # TODO: we may want to increase reward based on total score. Something like that...?
         # reward = own_score if won else 0.
         reward = 1. if won else 0.
+        self._in_terminal_state = True
 
         # Add feedback, sync
         self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=reward, next_state=state, terminated=True)

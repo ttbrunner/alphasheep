@@ -26,7 +26,7 @@
 #### DQNAgent
 - Cookie-cutter DQN implementation modeled after various books and tutorials.
 - Uses discounted rewards
-- State: 1-hot(x32) encoding of own cards, and those on the table. Nothign else.
+- State: 1-hot(x32) encoding of own cards, and those on the table. Nothing else.
 - Action: 1-hot(x32) encoding of cards to play. The action space is of course limited by the cards that the player has, and that are valid in the current game mode.
 - For faster training: modified to only learn every * episodes
 
@@ -36,7 +36,7 @@
 - The dealing procedure is rigged so that Player 0 is always dealt good cards for a Herz-Solo
 - Consequently, **the game mode is always Herz-Solo**. This is a very straightforward game mode.
 - Agent performance is evaluated by win rate over 1000 games. During training, this is calculated as a moving average.
-- RamdomCardAgent has ~60% winrate in the Herz-Solo scenario, wherease DQNAgent seems to fluctuate between 62-73.
+- RamdomCardAgent has ~60% winrate in the Herz-Solo scenario, whereas DQNAgent seems to fluctuate between 62-73.
 
 #### Observations
 - Find notes and ideas on experiments in *doc/observations.md*.

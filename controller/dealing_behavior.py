@@ -30,7 +30,7 @@ class DealFairly(DealingBehavior):
         deck = new_deck()
         np.random.shuffle(deck)
 
-        player_hands = [deck[i*8:(i+1)*8] for i in range(4)]
+        player_hands = [set(deck[i*8:(i+1)*8]) for i in range(4)]
         return player_hands
 
 
@@ -49,7 +49,7 @@ class DealWinnableHand(DealingBehavior):
         # Repeat random shuffles until the player's cards are good enough.
         while True:
             np.random.shuffle(deck)
-            player_hands = [deck[i * 8:(i + 1) * 8] for i in range(4)]
+            player_hands = [set(deck[i * 8:(i + 1) * 8]) for i in range(4)]
             if self._are_cards_suitable(player_hands[self._game_mode.declaring_player_id], self._game_mode):
                 return player_hands
 

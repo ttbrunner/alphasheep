@@ -165,4 +165,4 @@ class GameMode:
 
             card_values.append(value)
 
-        return np.argmax(np.array(card_values)).item()
+        return np.argmax(card_values).item()

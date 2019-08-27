@@ -24,7 +24,7 @@ def main():
     # Init logging and adjust log levels for some classes.
     init_logging()
     logger = get_named_logger("play_single_game.main")
-    get_class_logger(GameController).setLevel(logging.DEBUG)
+    get_class_logger(GameController).setLevel(logging.DEBUG)        # Log every single card.
 
     players = [
         Player("0-Hans", agent=RandomCardAgent()),

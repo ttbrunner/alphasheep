@@ -27,7 +27,7 @@ class PlayerAgent(ABC):
         Notifies the agent of the result of the game.
         :param won: True if the player won the game.
         :param own_score: Number of points scored by the player.
-        :param partner_score: Number of points scored by the player's patner. Optional: only if playing Rufspiel.
+        :param partner_score: Number of points scored by the player's partner. Optional: only if playing Rufspiel.
         """
         pass
 
@@ -46,7 +46,7 @@ class RandomCardAgent(PlayerAgent):
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):
         # Shuffles the agent's cards and picks the first one that is allowed.
 
-        cards_in_hand = np.array(cards_in_hand)
+        cards_in_hand = list(cards_in_hand)
         np.random.shuffle(cards_in_hand)
         for card in cards_in_hand:
             if game_mode.is_play_allowed(card, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick):

@@ -31,12 +31,12 @@ def main():
     # Init logging and adjust log levels for some classes.
     init_logging()
     logger = get_named_logger("train_rl_agent.main")
-    get_class_logger(GameController).setLevel(logging.INFO)
+    get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
     alphasau_agent = DQNAgent()
     if weights_path is not None:
         if not os.path.exists(weights_path):
-            logger.info('Weights file "{}" does not exist. Will create new file.')
+            logger.info('Weights file "{}" does not exist. Will create new file.'.format(weights_path))
         else:
             logger.info('Loading weights from "{}..."'.format(weights_path))
             alphasau_agent.load_weights(weights_path)
