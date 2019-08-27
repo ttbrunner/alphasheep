@@ -1,12 +1,18 @@
+"""
+Runs in an endless loop, constantly evaluating a checkpoint. Copies the checkpoint to save the best-performing model so far.
+"""
 
+import glob
+import re
+
+import numpy as np
 import argparse
 import logging
 import os
-from collections import deque
 
 from agents.agents import RandomCardAgent
 from agents.dqn_agent import DQNAgent
-from controller.dealing_behavior import DealWinnableHand
+from controller.dealing_behavior import DealWinnableHand, DealExactly
 from controller.game_controller import GameController
 from game.card import Suit
 from game.game_mode import GameContract, GameMode
@@ -18,23 +24,56 @@ from timeit import default_timer as timer
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("weights_path", help="Weights are loaded from this file.")
+    parser.add_argument("checkpoint_path", help="Weights are loaded from this file.")
+    parser.add_argument("--loop", help="If set, then runs in an endless loop.", required=False, action="store_true")
     args = parser.parse_args()
-    weights_path = args.weights_path
+    checkpoint_path = args.checkpoint_path
+    do_loop = args.loop is True
 
     # Init logging and adjust log levels for some classes.
     init_logging()
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
-    alphasau_agent = DQNAgent()
-    if weights_path is not None:
-        if not os.path.exists(weights_path):
-            logger.info('Weights file "{}" does not exist. Will create new file.'.format(weights_path))
-        else:
-            logger.info('Loading weights from "{}..."'.format(weights_path))
-            alphasau_agent.load_weights(weights_path)
+    # Find best checkpoint that exists on disk
+    splitext = os.path.splitext(checkpoint_path)
+    checkpoints = glob.glob(os.path.join(os.path.dirname(checkpoint_path), "{}-*{}".format(splitext[0], splitext[1])))
+    best_perf = 0.
+    for cp in checkpoints:
+        perf_str = re.findall(r"{}-(.*){}".format(os.path.basename(splitext[0]), splitext[1]), cp)
+        if len(perf_str) > 0:
+            perf = float(perf_str[0])
+            if perf > best_perf:
+                best_perf = perf
 
+    if best_perf > 0:
+        logger.info("Found previous best checkpoint with performance {}".format(best_perf))
+    else:
+        logger.info("Did not find any previous results.")
+
+    while True:
+        # Load the latest checkpoint and evaluate it
+        logger.info('Evaluating latest checkpoint "{}..."'.format(checkpoint_path))
+        alphasau_agent = DQNAgent(training=False)
+        alphasau_agent.load_weights(checkpoint_path)
+        cp_perf = eval_checkpoint(alphasau_agent)
+
+        if cp_perf > best_perf:
+            best_perf = cp_perf
+            logger.info("Found new best-performing checkpoint!")
+            cp_best = "{}-{}{}".format(splitext[0], str(best_perf), splitext[1])
+            logger.info('Saving checkpoint to "{}..."'.format(cp_best))
+            alphasau_agent.save_weights(cp_best)
+
+        if not do_loop:
+            # Run only once.
+            return
+
+
+def eval_checkpoint(alphasau_agent):
+    logger = get_named_logger("{}.eval_checkpoint".format(os.path.splitext(os.path.basename(__file__))[0]))
+
+    # Main set of players
     players = [
         Player("0-AlphaSau", agent=alphasau_agent),
         Player("1-Zenzi", agent=RandomCardAgent()),
@@ -42,54 +81,73 @@ def main():
         Player("3-Andal", agent=RandomCardAgent())
     ]
 
-    # Rig the game so Player 0 has the cards to play a Herz-Solo. Force them to play it.
+    # Baseline player: We compare the winrate of AlphaSau with a baseline agent (in this case, RandomCardAgent).
+    # - For each game, we fix the cards dealt and sample the same game a number of times.
+    # - From this we obtain the winrate of AlphaSau and the baseline for this specific game.
+    # - Per game, we then calculate the "relative performance", comparing winrate with the baseline.
+    # - Finally, we repeat this for a large number of games and measure the mean/median relative performance.
+    baseline_agent = RandomCardAgent()
+    baseline_players = [Player("0-Baseline", agent=baseline_agent), *players[1:]]
+
+    # Rig the game so Player 0 has the cards to play a Herz-Solo.
     game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=0)
-    controller = GameController(players, dealing_behavior=DealWinnableHand(game_mode), forced_game_mode=game_mode)
+    rng_dealer = DealWinnableHand(game_mode)
 
-    # Train virtually forever.
-    n_episodes = 100000000
-
-    # Calculate win% as simple moving average.
-    win_rate = float('nan')
-    n_won = 0
-    sma_window_len = 1000
-    won_deque = deque()
-
-    save_every_s = 60
+    # Run 1k different games. Each games is sampled 100 times.
+    n_games = 1000
+    n_baseline_samples = 100
+    n_agent_samples = 100
+    perf_record = np.empty(n_games, dtype=np.float32)
 
     time_start = timer()
-    time_last_save = timer()
-    for i_episode in range(n_episodes):
+    for i_game in range(n_games):
+        if i_game > 0 and i_game % 10 == 0:
+            s_elapsed = timer() - time_start
+            mean_perf = np.mean(perf_record[:i_game])
+            median_perf = np.median(perf_record[:i_game])
+            logger.info("Ran {} games. Mean rel. performance={:.3f}. Median rel. performance={:.3f}. "
+                        "Speed is {:.1f} games/second.".format(i_game, mean_perf, median_perf, i_game/s_elapsed))
 
-        if i_episode > 0:
-            # Calculate avg win%
-            if i_episode < sma_window_len:
-                win_rate = n_won / i_episode
-            else:
-                if won_deque.popleft() is True:
-                    n_won -= 1
-                win_rate = n_won / sma_window_len
+        # Deal a single random hand and then create a dealer that will replicate this hand, so we can compare how different agents
+        #  would fare with exactly this hand.
+        # We might want to create a mechanism for replicating exact game states in the future.
+        player_hands = rng_dealer.deal_hands()
+        replicating_dealer = DealExactly(player_hands)
+        i_player_dealer = i_game % 4
 
-            # Log
-            if i_episode % 100 == 0:
-                s_elapsed = timer() - time_start
-                logger.info("Ran {} Episodes. Win rate (last {} episodes) is {:.1%}. Speed is {:.0f} episodes/second.".format(
-                    i_episode, sma_window_len, win_rate, i_episode/s_elapsed))
+        def sample_games(sample_players, n_samples):
+            n_samples_won = 0
+            for i_sample in range(n_samples):
+                controller = GameController(sample_players, i_player_dealer=i_player_dealer,
+                                            dealing_behavior=replicating_dealer, forced_game_mode=game_mode)
+                winners = controller.run_game()
+                if winners[0] is True:
+                    n_samples_won += 1
+            return n_samples_won / n_samples
 
-            # Save model checkpoint
-            if weights_path is not None and timer() - time_last_save > save_every_s:
-                alphasau_agent.save_weights(weights_path, overwrite=True)
-                time_last_save = timer()
-                logger.info('Saved weights to "{}".'.format(weights_path))
+        def rel_performance(win_rate, win_rate_base):
+            eps = 1e-2
+            if win_rate_base < eps:
+                if win_rate < eps:
+                    return 1.0                         # special case: 0/0 := 1
+                win_rate_base = eps                    # special case: x/0 := x/0.01
+            return win_rate / win_rate_base
 
-        winners = controller.run_game()
-        won = winners[0]
-        won_deque.append(won)
-        if won:
-            n_won += 1
+        baseline_win_rate = sample_games(baseline_players, n_baseline_samples)
+        agent_win_rate = sample_games(players, n_agent_samples)
+        perf = rel_performance(agent_win_rate, baseline_win_rate)
+        logger.debug("Baseline win rate: {:.1%}. Agent win rate: {:.1%}. Relative agent performance={:.3f}".format(
+            baseline_win_rate, agent_win_rate, perf))
 
-    logger.info("Finished playing.")
-    logger.info("Final win rate: {:.1%}".format(win_rate))
+        perf_record[i_game] = perf
+
+    s_elapsed = timer() - time_start
+    mean_perf = np.mean(perf_record)
+    median_perf = np.median(perf_record)
+    logger.info("Finished evaluation. Took {:.0f} seconds.".format(s_elapsed))
+    logger.info("Mean rel. performance={:.3f}. Median rel. performance={:.3f}. ".format(mean_perf, median_perf))
+
+    return mean_perf
 
 
 if __name__ == '__main__':

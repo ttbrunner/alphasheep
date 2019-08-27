@@ -10,10 +10,12 @@ from log_util import get_class_logger
 
 
 class GameController:
-    def __init__(self, players: List[Player], dealing_behavior: DealingBehavior = DealFairly(), forced_game_mode: GameMode = None):
+    def __init__(self, players: List[Player], i_player_dealer=0,
+                 dealing_behavior: DealingBehavior = DealFairly(), forced_game_mode: GameMode = None):
         """
         Creates a GameController and, together with it, a GameState. Should be reused - run run_game() in order to simulate a single game.
         :param players: the players, along with their agents.
+        :param i_player_dealer: The player who is the dealer at start (i+1 is the player who will lead in the first game).
         :param dealing_behavior: Optional - the dealing behaviour. Default = fair
         :param forced_game_mode: Optional - if not None, players cannot bid, but every game is always the provided mode.
         """
@@ -25,10 +27,11 @@ class GameController:
         for p in players:
             self.logger.debug("Player {} with behavior {}.".format(p, p.agent))
 
-        self.game_state = GameState(players)
+        self.game_state = GameState(players, i_player_dealer=i_player_dealer)
         self.dealing_behavior = dealing_behavior
         self.forced_game_mode = forced_game_mode
         assert forced_game_mode is None or forced_game_mode.declaring_player_id is not None, "Must provide a specific player."
+
 
     def run_game(self) -> List[bool]:
         """

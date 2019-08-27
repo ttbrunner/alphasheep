@@ -33,7 +33,7 @@ class GameState:
     The controller and the GUI both have access to it, but not the Agents (of course).
     """
 
-    def __init__(self, players: List[Player], i_player_dealer=0):
+    def __init__(self, players: List[Player], i_player_dealer):
         self.players = players
         self.i_player_dealer = i_player_dealer
         for player in players:

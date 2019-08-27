@@ -22,8 +22,15 @@ class DQNAgent(PlayerAgent):
     limited scenario.
     """
 
-    def __init__(self):
+    def __init__(self, training):
+        """
+        Creates a new DQNAgent.
+        :param training: if True, will train during play. This usually means worse performance (because of exploration). If False,
+                         then the agent will always pick the best action (according to Q-value).
+        """
+
         self.logger = get_class_logger(self)
+        self.training = training
 
         # In both states and actions, cards are encoded as one-hot vectors of size 32.
         # Providing indices to perform quick lookups: i->card->i
@@ -68,7 +75,7 @@ class DQNAgent(PlayerAgent):
         # Don't retrain after every single experience.
         # If we retrain every time, then the probability of a new experience actually being in the training batch is super low.
         # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing (expensive) training.
-        self._retrain_every_n = 16
+        self._retrain_every_n = 8
         self._experiences_since_last_retrain = 0
 
     def _build_model(self):
@@ -88,14 +95,12 @@ class DQNAgent(PlayerAgent):
 
     def _receive_feedback(self, state, action, reward, next_state, terminated):
         # Store the experience into the buffer and retrain the network.
+        assert self.training is True
 
         self.experience_buffer.append((state, action, reward, next_state, terminated))
 
         self._experiences_since_last_retrain += 1
-        if self._experiences_since_last_retrain < self._retrain_every_n:
-            return
-
-        if len(self.experience_buffer) < self._batch_size:
+        if self._experiences_since_last_retrain < self._retrain_every_n or len(self.experience_buffer) < self._batch_size:
             return
 
         # Train one minibatch from the experience replay buffer.
@@ -138,21 +143,21 @@ class DQNAgent(PlayerAgent):
         if self._in_terminal_state:
             raise ValueError("Agent is in terminal state. Did you start a new game? Need to call notify_new_game() first.")
 
-        # Encode the state. TODO: replace state and action with bool!
+        # Encode the current state. TODO: replace state and action with bool!
         state = np.zeros(shape=self._state_size, dtype=np.int32)
         for card in cards_in_hand:
             state[self._card_indices[card]] = 1
         for i, card in enumerate(cards_in_trick):
             state[(i+1)*32 + self._card_indices[card]] = 1
 
-        # Save experience (previous action led to the current state).
-        # Right now, we provide rewards only at the end of the game.
-        if self._prev_action is not None:
+        # Save experience for training (previous action led to the current state).
+        if self.training and self._prev_action is not None:
+            # Right now, we provide rewards only at the end of the game.
             self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=0, next_state=state, terminated=False)
 
         # Pick an action (a card).
         selected_card = None
-        if np.random.rand() <= self._epsilon:
+        if self.training and np.random.rand() <= self._epsilon:
             # Explore: Select a random card (that is allowed).
             cards_in_hand = list(cards_in_hand)
             np.random.shuffle(cards_in_hand)
@@ -187,17 +192,17 @@ class DQNAgent(PlayerAgent):
 
         assert self._prev_action is not None and self._prev_state is not None
 
-        # No cards anywhere = all zeros
-        state = np.zeros(self._state_size, dtype=np.int32)
+        if self.training:
+            state = np.zeros(self._state_size, dtype=np.int32)        # In the terminal state, there are no cards
 
-        # TODO: we may want to increase reward based on total score. Something like that...?
-        # reward = own_score if won else 0.
-        reward = 1. if won else 0.
-        self._in_terminal_state = True
+            # TODO: we may want to increase reward based on total score. Something like that...?
+            # reward = own_score if won else 0.
+            reward = 1. if won else 0.
+            self._in_terminal_state = True
 
-        # Add feedback, sync
-        self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=reward, next_state=state, terminated=True)
-        self._align_target_model()          # The episode is over, sync the models.
+            # Add feedback, sync
+            self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=reward, next_state=state, terminated=True)
+            self._align_target_model()          # The episode is over, sync the models.
 
     def notify_new_game(self):
         # Reset everything concerning the current game state.

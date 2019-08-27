@@ -33,7 +33,7 @@ def main():
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
-    alphasau_agent = DQNAgent()
+    alphasau_agent = DQNAgent(training=True)
     if weights_path is not None:
         if not os.path.exists(weights_path):
             logger.info('Weights file "{}" does not exist. Will create new file.'.format(weights_path))

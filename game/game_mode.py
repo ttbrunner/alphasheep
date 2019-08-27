@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Iterable, List
 import numpy as np
 
-from game.card import Card, Pip, Suit
+from game.card import Card, Pip, Suit, new_deck
 
 
 class GameContract(Enum):
@@ -69,6 +69,10 @@ class GameMode:
         assert card in cards_in_hand
         cards_in_hand = list(cards_in_hand)                               # Python 3.5 doesn't support Collection type hints yet so let's be explicit
 
+        rufsau = None
+        if self.contract == GameContract.rufspiel:
+            rufsau = Card(suit=self.ruf_suit, pip=Pip.sau)
+
         # To make matching easier, we redefine suits as follows:
         # - All trumps are assigned to a special "trump suit", and this includes unter and ober (depending on the variant).
         # - Trump cards do not belong to their original suits (e.g. The suit of "Gras Unter" is not Gras, but Trump).
@@ -76,13 +80,9 @@ class GameMode:
         def true_suit(c: Card) -> int:
             return 9001 if self.is_trump(c) else c.suit.value
 
-        rufsau = None
-        if self.contract == GameContract.rufspiel:
-            rufsau = Card(suit=self.ruf_suit, pip=Pip.sau)
-
         if len(cards_in_trick) == 0:
             # Player is leading.
-            if self.contract == GameContract.rufspiel and true_suit(card) == self.ruf_suit:
+            if self.contract == GameContract.rufspiel and card.suit == self.ruf_suit:
                 # Player is playing ruf-suit.
                 if rufsau in cards_in_hand:
                     # Player has the Rufsau. In that case, they are not allowed to play any card of ruf-suit unless:
@@ -104,7 +104,7 @@ class GameMode:
 
         if true_suit(card) == true_suit(first_card):
             # Player is matching suit.
-            if self.contract == GameContract.rufspiel and true_suit(card) == self.ruf_suit:
+            if self.contract == GameContract.rufspiel and card.suit == self.ruf_suit:
                 # Player is matching the ruf-suit. If they have the ruf-sau, then they need to play it.
                 if card != rufsau and rufsau in cards_in_hand:
                     # Player has the ruf-sau but did not play it!
@@ -145,7 +145,8 @@ class GameMode:
 
         is_trump_first = self.is_trump(cards_in_trick[0])
 
-        card_values = []
+        i_highest = -1
+        val_highest = -1
         for i_c, c in enumerate(cards_in_trick):
             value = 0
             if self.is_trump(c):
@@ -163,6 +164,9 @@ class GameMode:
                     # If the first card is also a non-trump suit (and this one matches it), then the higher pip wins.
                     value += pip_vals[c.pip]
 
-            card_values.append(value)
+            if value > val_highest:
+                val_highest = value
+                i_highest = i_c
 
-        return np.argmax(card_values).item()
+        assert i_highest >= 0
+        return i_highest

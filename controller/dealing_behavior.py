@@ -68,3 +68,16 @@ class DealWinnableHand(DealingBehavior):
             elif Card(Suit.eichel, Pip.ober) in cards_in_hand:
                 return True
         return False
+
+
+class DealExactly(DealingBehavior):
+    """
+    Deals exactly the specified cards.
+    """
+    def __init__(self, player_hands: List[Iterable[Card]]):
+        assert len(player_hands) == 4 and not any(cards for cards in player_hands if len(list(cards)) != 8)
+        self.player_hands = player_hands
+
+    def deal_hands(self) -> List[Iterable[Card]]:
+        # Create new list/sets to prevent modification
+        return [set(cards) for cards in self.player_hands]
