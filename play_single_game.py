@@ -12,7 +12,7 @@ from game.card import Suit
 from game.game_mode import GameMode, GameContract
 from game.game_state import Player
 
-from gui.gui import Gui
+from gui.gui import Gui, UserQuitGameException
 from agents.agents import RandomCardAgent
 from log_util import init_logging, get_class_logger, get_named_logger
 
@@ -64,9 +64,12 @@ def main():
 
     # Run a single game before terminating.
     logger.info("Starting game loop...")
-    while True:
-        controller.run_game()
-    # logger.info("Finished playing.")
+    try:
+        while True:
+            controller.run_game()
+    except UserQuitGameException:
+        logger.info("User quit game.")
+    logger.info("Finished playing.")
 
 
 if __name__ == '__main__':
