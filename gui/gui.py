@@ -1,10 +1,13 @@
+from typing import Callable
+
 import pygame
 import pygame.freetype
 
-from game.card import new_deck, pip_scores
+from game.card import new_deck, pip_scores, Pip, Suit, Card
 from game.game_state import GameState, GamePhase
 from gui.assets import get_card_img_path
 from gui.utils import sorted_cards
+from log_util import get_class_logger
 
 
 class UserQuitGameException(Exception):
@@ -19,15 +22,16 @@ class Gui:
     def __init__(self, game_state: GameState, resolution=(1280, 800)):
         pygame.init()
 
+        self.logger = get_class_logger(self)
+
         self.game_state = game_state
         self.resolution = resolution
         self.is_running = False
-        self.game_state.ev_changed.subscribe(self.on_game_state_changed)                # TODO: This should be cleaned up.
+        self.game_state.ev_changed.subscribe(self.on_game_state_changed)                # TODO: Also unsusbscribe at some point.
 
         self._screen = pygame.display.set_mode(self.resolution)                         # Display screen
         self._card_assets = {card: pygame.image.load(get_card_img_path(card)).convert() for card in new_deck()}
         self._fps_clock = pygame.time.Clock()
-        self._waiting_for_click = False
 
         # Every player has a "Card surface" onto which their cards are drawn.
         # This card surface is then rotated and translated into position.
@@ -42,6 +46,10 @@ class Gui:
         pygame.freetype.init()
         self._font = pygame.freetype.SysFont("Courier New", 12)
         self._font.antialiased = False
+
+        # Last click - these values survive only for one draw call. During the draw call, they are set, and afterwards read.
+        self._click_pos = None
+        self._clicked_card = None
 
         pygame.display.set_caption("AlphaSau")
 
@@ -62,6 +70,24 @@ class Gui:
         self._screen.blit(pygame.transform.rotate(self._player_card_surfs[1], 270), (30, 200))          # 1: Left
         self._screen.blit(pygame.transform.rotate(self._player_card_surfs[2], 180), (475, 30))          # 2: Top
         self._screen.blit(pygame.transform.rotate(self._player_card_surfs[3], 90), (1080, 200))         # 3: Right
+
+        # Check if the user clicked on Player 0's cards.
+        # In the future, let's stop using hardcoded Pixels and do some semblance of a scene graph.
+        # Unfortunately, PyGame doesn't really seem to support a transform stack so let's stay with this for now. Should we move to OpenGL?
+        if self._click_pos is not None and self._player_card_surfs[0].get_rect().move(475, 600).collidepoint(*self._click_pos):
+            card_dims = self._card_assets[Card(Suit.schellen, Pip.sieben)].get_rect()[2:]  # Exact Width&height of any card
+            rect = pygame.Rect(475, 600, *card_dims)
+            n_cards = len(player_cards[0])
+            clicked_card = None
+            for i in reversed(range(n_cards)):
+                test_rect = rect.move(i * 30, 0)           # move from right to left (front to back)
+                if test_rect.collidepoint(*self._click_pos):
+                    clicked_card = player_cards[0][i]
+                    break
+
+            if clicked_card:
+                self._clicked_card = clicked_card
+                self.logger.debug(f"Clicked on {clicked_card}")
 
     def _draw_current_trick_cards(self):
         # Draw the cards that are "on the table".
@@ -90,7 +116,6 @@ class Gui:
         self._screen.blit(self._middle_trick_surf, (480, 260))
 
     def _draw_player_text(self):
-
         decl_pid = None
         if self.game_state.game_mode is not None:
             decl_pid = self.game_state.game_mode.declaring_player_id
@@ -130,8 +155,6 @@ class Gui:
         self._screen.blit(self._player_text_surfs[2], (800, 30))
         self._screen.blit(self._player_text_surfs[3], (1080, 520))
 
-        pass
-
     def _draw_frame(self):
         # Draws a single frame and returns control.
 
@@ -158,15 +181,21 @@ class Gui:
 
             # Mouse button = stop drawing and return control.
             if event.type == pygame.MOUSEBUTTONUP:
-                self._waiting_for_click = False
+                self._click_pos = pygame.mouse.get_pos()        # _draw_frame will find a card that was clicked on.
 
     def on_game_state_changed(self):
-        # Receiving this event when we should draw an update (and maybe pause).
+        # Receiving this event when we should draw an update (and wait for the user to click).
 
-        # Run draw loop until a click is received.
-        self._waiting_for_click = True
-        while self._waiting_for_click:
+        # Wait until the user clicks.
+        self._click_pos = None
+        self.wait_and_draw_until(lambda: self._click_pos is not None)
+
+        # # Example code: Wait until the user selects a card.
+        # self._clicked_card = None
+        # self.wait_and_draw_until(lambda: self._clicked_card is not None)
+
+    def wait_and_draw_until(self, terminating_condition: Callable[[], bool]):
+        # Runs the draw loop until the terminating condition returns true.
+        while not terminating_condition():
             self._handle_pygame_events()
             self._draw_frame()
-
-        # pygame.time.wait(1000)

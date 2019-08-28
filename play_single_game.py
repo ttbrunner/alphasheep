@@ -29,6 +29,7 @@ def main():
     init_logging()
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.DEBUG)        # Log every single card.
+    get_class_logger(Gui).setLevel(logging.DEBUG)                   # Log mouse clicks.
 
     if as_checkpoint_path is not None:
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)

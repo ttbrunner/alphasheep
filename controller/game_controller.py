@@ -32,7 +32,6 @@ class GameController:
         self.forced_game_mode = forced_game_mode
         assert forced_game_mode is None or forced_game_mode.declaring_player_id is not None, "Must provide a specific player."
 
-
     def run_game(self) -> List[bool]:
         """
         Runs a single game (and shifts the dealing player clockwise). Can be called multiple times.
