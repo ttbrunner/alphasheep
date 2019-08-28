@@ -62,8 +62,10 @@ class DQNAgent(PlayerAgent):
         self.experience_buffer = deque(maxlen=2000)
 
         # Remember the state and action (card) played in the previous trick, so we can can judge it once we receive feedback.
+        # Also remember which actions were available - we can experiment with setting their Q to zero.
         self._prev_state = None
         self._prev_action = None
+        self._prev_available_actions = None
         self._in_terminal_state = False
 
         # Create Q network (current state) and Target network (successor state). The networks are synced after every episode (game).
@@ -93,11 +95,11 @@ class DQNAgent(PlayerAgent):
     def _align_target_model(self):
         self.target_network.set_weights(self.q_network.get_weights())
 
-    def _receive_feedback(self, state, action, reward, next_state, terminated):
+    def _receive_feedback(self, state, action, reward, next_state, terminated, available_actions):
         # Store the experience into the buffer and retrain the network.
         assert self.training is True
 
-        self.experience_buffer.append((state, action, reward, next_state, terminated))
+        self.experience_buffer.append((state, action, reward, next_state, terminated, available_actions))
 
         self._experiences_since_last_retrain += 1
         if self._experiences_since_last_retrain < self._retrain_every_n or len(self.experience_buffer) < self._batch_size:
@@ -113,14 +115,16 @@ class DQNAgent(PlayerAgent):
         reward_batch = np.empty(shape=self._batch_size, dtype=np.float32)
         next_state_batch = np.empty(shape=(self._batch_size, self._state_size), dtype=np.int32)
         terminated_batch = np.empty(shape=self._batch_size, dtype=np.bool)
+        available_actions_batch = np.empty(shape=(self._batch_size, self._action_size), dtype=np.bool)
 
         for i, index in enumerate(indices):
-            state, action, reward, next_state, terminated = self.experience_buffer[index]
+            state, action, reward, next_state, terminated, available_actions = self.experience_buffer[index]
             state_batch[i, :] = state
             action_id_batch[i] = np.argmax(action)
             reward_batch[i] = reward
             next_state_batch[i, :] = next_state
             terminated_batch[i] = terminated
+            available_actions_batch[i, :] = available_actions
 
         q_curr = self.q_network.predict(state_batch)
         q_next = self.target_network.predict(next_state_batch)
@@ -134,6 +138,7 @@ class DQNAgent(PlayerAgent):
 
         # Update the Q-value for the actions that were picked. Leave the rest the same.
         q_target = q_curr.copy()
+        q_target *= available_actions_batch
         q_target[np.arange(self._batch_size), action_id_batch] = exp_reward
 
         self.q_network.fit(state_batch, q_target, epochs=1, verbose=0)
@@ -153,7 +158,14 @@ class DQNAgent(PlayerAgent):
         # Save experience for training (previous action led to the current state).
         if self.training and self._prev_action is not None:
             # Right now, we provide rewards only at the end of the game.
-            self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=0, next_state=state, terminated=False)
+            self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=0, next_state=state,
+                                   terminated=False, available_actions=self._prev_available_actions)
+
+        # Create a mask of available actions.
+        available_actions = np.zeros(self._action_size, dtype=np.bool)
+        for card in cards_in_hand:
+            if game_mode.is_play_allowed(card, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick):
+                available_actions[self._card_indices[card]] = True
 
         # Pick an action (a card).
         selected_card = None
@@ -162,20 +174,20 @@ class DQNAgent(PlayerAgent):
             cards_in_hand = list(cards_in_hand)
             np.random.shuffle(cards_in_hand)
             for card in cards_in_hand:
-                if game_mode.is_play_allowed(card, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick):
+                if available_actions[self._card_indices[card]]:
                     selected_card = card
                     break
         else:
             # Exploit: Predict q-values for the current state and select the best action/card that is allowed.
             q_values = self.q_network.predict(state[np.newaxis, :])[0]
             i_best_actions = np.argsort(q_values)[::-1]
-            for i_action in i_best_actions:
-                card = self._cards[i_action]
-                if card in cards_in_hand and game_mode.is_play_allowed(card, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick):
-                    selected_card = card
-                    break
+            self.logger.debug("Q values:\n" + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
 
-            self.logger.debug("Q values: " + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
+            # Don't set unavailable actions to 0, because the agent can actually learn negative Q-values for valid actions
+            for i_action in i_best_actions:
+                if available_actions[i_action]:
+                    selected_card = self._cards[i_action]
+                    break
 
         if selected_card is None:
             raise ValueError("Could not find a valid card! Please debug. Sorry.")
@@ -186,6 +198,7 @@ class DQNAgent(PlayerAgent):
 
         self._prev_state = state
         self._prev_action = selected_action
+        self._prev_available_actions = available_actions
 
         return selected_card
 
@@ -203,7 +216,8 @@ class DQNAgent(PlayerAgent):
             self._in_terminal_state = True
 
             # Add feedback, sync
-            self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=reward, next_state=state, terminated=True)
+            self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=reward, next_state=state,
+                                   terminated=True, available_actions=self._prev_available_actions)
             self._align_target_model()          # The episode is over, sync the models.
 
     def notify_new_game(self):
@@ -213,6 +227,7 @@ class DQNAgent(PlayerAgent):
 
         self._prev_state = None
         self._prev_action = None
+        self._prev_available_actions = None
         self._in_terminal_state = False
 
     def save_weights(self, filepath, overwrite=True):
