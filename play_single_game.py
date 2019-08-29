@@ -14,16 +14,19 @@ from game.game_state import Player
 
 from gui.gui import Gui, UserQuitGameException
 from agents.agents import RandomCardAgent
+from gui.gui_agent import GUIAgent
 from log_util import init_logging, get_class_logger, get_named_logger
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--disable_gui", help="Run without the GUI (not interactively).", action="store_true")
-    parser.add_argument("--alphasau_checkpoint", help="Checkpoint for AlphaSau. If not provided, the baseline will play.", required=False)
+    parser.add_argument("--p0-agent", type=str, choices=['random', 'alphasau', 'user'], required=True)
+    parser.add_argument("--alphasau_checkpoint", help="Checkpoint for AlphaSau, if --p0-agent=alphasau.", required=False)
     args = parser.parse_args()
-    run_with_gui = not args.disable_gui
+    agent_choice = args.p0_agent
     as_checkpoint_path = args.alphasau_checkpoint
+    if agent_choice == "alphasau" and not as_checkpoint_path:
+        raise ValueError("Need to specify --alphasau_checkpoint if --p0_agent=alphasau.")
 
     # Init logging and adjust log levels for some classes.
     init_logging()
@@ -31,12 +34,14 @@ def main():
     get_class_logger(GameController).setLevel(logging.DEBUG)        # Log every single card.
     get_class_logger(Gui).setLevel(logging.DEBUG)                   # Log mouse clicks.
 
-    if as_checkpoint_path is not None:
+    if agent_choice == "alphasau":
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)
         alphasau_agent = DQNAgent(training=False)
         logger.info(f'Loading weights from "{as_checkpoint_path}"...')
         alphasau_agent.load_weights(as_checkpoint_path)
         p0 = Player("0-AlphaSau", agent=alphasau_agent)
+    elif agent_choice == "user":
+        p0 = Player("0-User", agent=GUIAgent())
     else:
         p0 = Player("0-Hans", agent=RandomCardAgent())
 
@@ -60,8 +65,7 @@ def main():
     #
     # Since everything is done synchronously, the GUI can block on every event (and wait for the user to click).
     # In this way, the GUI can be used to debug and watch a single game.
-    if run_with_gui:
-        gui = Gui(controller.game_state)
+    gui = Gui(controller.game_state)
 
     # Run a single game before terminating.
     logger.info("Starting game loop...")

@@ -134,7 +134,7 @@ class GameController:
                 # CHECK 1: Does the player have that card?
                 # Again, this check is only for data integrity. More sophisticated logic (trying to play cards that are not available...)
                 #  should be handled by the players themselves. This interface will accept only cards that exist.
-                assert selected_card in player.cards_in_hand
+                assert selected_card in player.cards_in_hand, f"{player} does not have {selected_card}!"
 
                 # CHECK 2: Do the rules allow the player to play that card?
                 if not game_mode.is_play_allowed(selected_card,

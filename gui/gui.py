@@ -6,6 +6,7 @@ import pygame.freetype
 from game.card import new_deck, pip_scores, Pip, Suit, Card
 from game.game_state import GameState, GamePhase
 from gui.assets import get_card_img_path
+from gui.gui_agent import GUIAgent
 from gui.utils import sorted_cards
 from log_util import get_class_logger
 
@@ -47,9 +48,22 @@ class Gui:
         self._font = pygame.freetype.SysFont(None, 12)
         self._font.antialiased = True
 
-        # Last click - these values survive only for one draw call. During the draw call, they are set, and afterwards read.
-        self._click_pos = None
-        self._clicked_card = None
+        # Latest click - these values survive only for one draw call. During the draw call, they are set, and afterwards read.
+        self._clicked_pos = None
+        self._clicked_card = None        # For now, these are only Player 0's cards.
+
+        # If a player agent is the GUIAgent, register a callback that waits until the user selects a card.
+        self._gui_agent_attached = False
+        assert not any(isinstance(p.agent, GUIAgent) for p in game_state.players[1:]), "Only Player 0 can have a GUIAgent."
+        if isinstance(game_state.players[0].agent, GUIAgent):
+            def select_card_callback(reset_clicks=False):
+                if reset_clicks:
+                    self._clicked_pos = None
+                self._clicked_card = None
+                self.wait_and_draw_until(lambda: self._clicked_card is not None)
+                return self._clicked_card
+            game_state.players[0].agent.register_gui_callback(select_card_callback)
+            self._gui_agent_attached = True
 
         pygame.display.set_caption("AlphaSau")
 
@@ -74,14 +88,14 @@ class Gui:
         # Check if the user clicked on Player 0's cards.
         # In the future, let's stop using hardcoded Pixels and do some semblance of a scene graph.
         # Unfortunately, PyGame doesn't really seem to support a transform stack so let's stay with this for now. Should we move to OpenGL?
-        if self._click_pos is not None and self._player_card_surfs[0].get_rect().move(475, 600).collidepoint(*self._click_pos):
+        if self._clicked_pos is not None and self._player_card_surfs[0].get_rect().move(475, 600).collidepoint(*self._clicked_pos):
             card_dims = self._card_assets[Card(Suit.schellen, Pip.sieben)].get_rect()[2:]  # Exact Width&height of any card
             rect = pygame.Rect(475, 600, *card_dims)
             n_cards = len(player_cards[0])
             clicked_card = None
             for i in reversed(range(n_cards)):
                 test_rect = rect.move(i * 30, 0)           # move from right to left (front to back)
-                if test_rect.collidepoint(*self._click_pos):
+                if test_rect.collidepoint(*self._clicked_pos):
                     clicked_card = player_cards[0][i]
                     break
 
@@ -214,18 +228,14 @@ class Gui:
 
             # Mouse button = stop drawing and return control.
             if event.type == pygame.MOUSEBUTTONUP:
-                self._click_pos = pygame.mouse.get_pos()        # _draw_frame will find a card that was clicked on.
+                self._clicked_pos = pygame.mouse.get_pos()        # _draw_frame will find a card that was clicked on.
 
     def on_game_state_changed(self):
         # Receiving this event when we should draw an update (and wait for the user to click).
 
         # Wait until the user clicks.
-        self._click_pos = None
-        self.wait_and_draw_until(lambda: self._click_pos is not None)
-
-        # # Example code: Wait until the user selects a card.
-        # self._clicked_card = None
-        # self.wait_and_draw_until(lambda: self._clicked_card is not None)
+        self._clicked_pos = None
+        self.wait_and_draw_until(lambda: self._clicked_pos is not None)
 
     def wait_and_draw_until(self, terminating_condition: Callable[[], bool]):
         # Runs the draw loop until the terminating condition returns true.
