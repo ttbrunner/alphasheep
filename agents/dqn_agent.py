@@ -1,6 +1,6 @@
 import numpy as np
 from collections import deque
-from typing import Iterable, List
+from typing import Iterable, List, Dict, Optional
 from tensorflow.python.keras import Sequential
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.optimizers import Adam
@@ -79,6 +79,9 @@ class DQNAgent(PlayerAgent):
         # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing (expensive) training.
         self._retrain_every_n = 8
         self._experiences_since_last_retrain = 0
+
+        # For display in the GUI
+        self._current_q_vals = None
 
     def _build_model(self):
         model = Sequential()
@@ -171,6 +174,7 @@ class DQNAgent(PlayerAgent):
         selected_card = None
         if self.training and np.random.rand() <= self._epsilon:
             # Explore: Select a random card (that is allowed).
+            self._current_q_vals = np.ones(self._action_size, dtype=np.float32) / self._action_size
             cards_in_hand = list(cards_in_hand)
             np.random.shuffle(cards_in_hand)
             for card in cards_in_hand:
@@ -180,6 +184,7 @@ class DQNAgent(PlayerAgent):
         else:
             # Exploit: Predict q-values for the current state and select the best action/card that is allowed.
             q_values = self.q_network.predict(state[np.newaxis, :])[0]
+            self._current_q_vals = q_values
             i_best_actions = np.argsort(q_values)[::-1]
             self.logger.debug("Q values:\n" + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
 
@@ -229,6 +234,9 @@ class DQNAgent(PlayerAgent):
         self._prev_action = None
         self._prev_available_actions = None
         self._in_terminal_state = False
+
+    def internal_card_values(self) -> Optional[Dict[Card, float]]:
+        return {c: self._current_q_vals[i] for i, c in enumerate(self._cards)}
 
     def save_weights(self, filepath, overwrite=True):
         self.q_network.save_weights(filepath, overwrite=overwrite)

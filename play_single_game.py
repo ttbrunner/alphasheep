@@ -34,6 +34,7 @@ def main():
     if as_checkpoint_path is not None:
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)
         alphasau_agent = DQNAgent(training=False)
+        logger.info(f'Loading weights from "{as_checkpoint_path}"...')
         alphasau_agent.load_weights(as_checkpoint_path)
         p0 = Player("0-AlphaSau", agent=alphasau_agent)
     else:

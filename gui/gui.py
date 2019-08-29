@@ -41,11 +41,11 @@ class Gui:
         self._player_text_surfs = [pygame.Surface(p_text_surf_dims) for _ in range(4)]
 
         # Surface in the middle, containing the "cards on the table".
-        self._middle_trick_surf = pygame.Surface((300, 300))
+        self._middle_trick_surf = pygame.Surface((300, 270))
 
         pygame.freetype.init()
-        self._font = pygame.freetype.SysFont("Courier New", 12)
-        self._font.antialiased = False
+        self._font = pygame.freetype.SysFont(None, 12)
+        self._font.antialiased = True
 
         # Last click - these values survive only for one draw call. During the draw call, they are set, and afterwards read.
         self._click_pos = None
@@ -89,6 +89,33 @@ class Gui:
                 self._clicked_card = clicked_card
                 self.logger.debug(f"Clicked on {clicked_card}")
 
+        # More Player 0 craziness: render predicted values next to cards, if available.
+        # Only draw them immediately after the player has played a card.
+        if self.game_state.leading_player is not None:
+            i_leader = self.game_state.players.index(self.game_state.leading_player)
+            if len(self.game_state.current_trick_cards) == (0 - i_leader) % 4 + 1:
+
+                vals = self.game_state.players[0].agent.internal_card_values()
+                if vals is not None:
+                    col_normal = pygame.Color("#FFFFFF")
+                    col_invalid = pygame.Color("#555555")
+
+                    # Render the values of all cards in the player's hand
+                    for i, card in enumerate(player_cards[0]):
+                        val = vals.get(card, None)
+                        if val is not None:
+                            tmp_hand = list(self.game_state.players[0].cards_in_hand) + [self.game_state.current_trick_cards[-1]]
+                            tmp_trick = self.game_state.current_trick_cards[:-1]
+                            color = col_normal
+                            if not self.game_state.game_mode.is_play_allowed(card, cards_in_hand=tmp_hand, cards_in_trick=tmp_trick):
+                                color = col_invalid
+                            self._font.render_to(self._screen, (480+i*30, 580), f"{val:.3f}".lstrip("0"), fgcolor=color)
+
+                    # Also render the value of the card that was played
+                    val = vals.get(self.game_state.current_trick_cards[-1], None)
+                    if val is not None:
+                        self._font.render_to(self._screen, (618, 538), f"{val:.3f}".lstrip("0"), fgcolor=col_normal)
+
     def _draw_current_trick_cards(self):
         # Draw the cards that are "on the table".
 
@@ -129,26 +156,32 @@ class Gui:
 
             y = 0
             self._player_text_surfs[i].fill((0, 0, 0))
-            self._font.render_to(self._player_text_surfs[i], (0, y), f"Player: {p.name}", fgcolor=txt_color)
+            self._font.render_to(self._player_text_surfs[i], (0, y), f"Player: {p.name}",
+                                 fgcolor=txt_color)
             y += 20
 
             if i == self.game_state.i_player_dealer:
-                self._font.render_to(self._player_text_surfs[i], (0, y), f"(Dealer)", fgcolor=txt_color)
+                self._font.render_to(self._player_text_surfs[i], (0, y), f"(Dealer)",
+                                     fgcolor=txt_color)
                 y += 20
 
             if p == self.game_state.leading_player:
-                self._font.render_to(self._player_text_surfs[i], (0, y), f"(Leading)", fgcolor=txt_color)
+                self._font.render_to(self._player_text_surfs[i], (0, y), f"(Leading)",
+                                     fgcolor=txt_color)
                 y += 20
 
             if i == decl_pid:
-                self._font.render_to(self._player_text_surfs[i], (0, y), f"Playing a {self.game_state.game_mode}", fgcolor=red_color)
+                self._font.render_to(self._player_text_surfs[i], (0, y), f"Playing a {self.game_state.game_mode}",
+                                     fgcolor=red_color)
                 y += 20
 
-            self._font.render_to(self._player_text_surfs[i], (0, y), f"Score: {score}", fgcolor=green_color if won else txt_color)
+            self._font.render_to(self._player_text_surfs[i], (0, y), f"Score: {score}",
+                                 fgcolor=green_color if won else txt_color)
             y += 20
 
             if self.game_state.game_phase == GamePhase.post_play and i == decl_pid:
-                self._font.render_to(self._player_text_surfs[i], (0, y), "Won!" if won else "Lost!", fgcolor=green_color if won else red_color)
+                self._font.render_to(self._player_text_surfs[i], (0, y), "Won!" if won else "Lost!",
+                                     fgcolor=green_color if won else red_color)
 
         self._screen.blit(self._player_text_surfs[0], (800, 600))
         self._screen.blit(self._player_text_surfs[1], (30, 520))

@@ -1,7 +1,8 @@
-from typing import List
+from typing import List, Optional
 from enum import Enum
 
 from agents.agents import PlayerAgent
+from game.game_mode import GameMode
 from utils import Event
 
 
@@ -41,10 +42,10 @@ class GameState:
 
         # Starting pre-deal, where the game has not been declared.
         self.game_phase = GamePhase.pre_deal
-        self.game_mode = None
+        self.game_mode: Optional[GameMode] = None
 
         # Player who plays the first card of the trick.
-        self.leading_player = None
+        self.leading_player: Optional[Player] = None
 
         # During the playing phase, these are the cards that are "on the table", in order of playing.
         self.current_trick_cards = []

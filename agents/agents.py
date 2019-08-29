@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Iterable, List
+from typing import Iterable, List, Dict, Optional
 import numpy as np
 
 from game.card import Card
@@ -12,7 +12,7 @@ class PlayerAgent(ABC):
     """
 
     @abstractmethod
-    def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):
+    def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode) -> Card:
         """
         Returns the card which the agent wants to play.
         :param cards_in_hand: the cards which the player currently has in hand.
@@ -20,7 +20,7 @@ class PlayerAgent(ABC):
         :param game_mode: the game mode that is currently being played.
         :return: A card that is contained in cards_in_hand.
         """
-        pass
+        pass                # Abstract
 
     def notify_game_result(self, won: bool, own_score: int, partner_score: int = None):
         """
@@ -29,13 +29,20 @@ class PlayerAgent(ABC):
         :param own_score: Number of points scored by the player.
         :param partner_score: Number of points scored by the player's partner. Optional: only if playing Rufspiel.
         """
-        pass
+        pass                # Default implementation: do nothing
 
     def notify_new_game(self):
         """
         Notifies the agent that a new game has started.
         """
-        pass
+        pass                # Default implementation: do nothing
+
+    def internal_card_values(self) -> Optional[Dict[Card, float]]:
+        """
+        Gets internal values (e.g. q-values) for each Card for display.
+        :return: Optional - A dictionary with a value for each card in hand.
+        """
+        return None         # Default implementation: no values
 
 
 class RandomCardAgent(PlayerAgent):
