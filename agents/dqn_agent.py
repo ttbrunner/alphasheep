@@ -127,7 +127,6 @@ class DQNAgent(PlayerAgent):
         offset += 32
 
         assert offset == self._state_size
-        print(state)
         return state
 
     def _receive_feedback(self, state, action, reward, next_state, terminated, available_actions):
