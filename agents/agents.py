@@ -22,6 +22,12 @@ class PlayerAgent(ABC):
         """
         pass                # Abstract
 
+    def notify_trick_result(self, cards_in_trick: List[Card], rel_winner_id: int):
+        """
+        Notifies the agent of the result of the current trick. TODO
+        """
+        pass                # Default implementation: do nothing
+
     def notify_game_result(self, won: bool, own_score: int, partner_score: int = None):
         """
         Notifies the agent of the result of the game.

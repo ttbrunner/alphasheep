@@ -37,18 +37,8 @@ class DQNAgent(PlayerAgent):
         self._cards = new_deck()
         self._card_indices = {card: i for i, card in enumerate(self._cards)}
 
-        # State space: This is a tough one. For our first experiments, this contains the cards the player has in hand,
-        # and the cards that are in the current trick on the table.
-        # In the future, we might want to include:
-        # - Number of the current trick
-        # - Info about other players
-        # - Info about the past... should we encode this into state, or should the agent (internally) keep some form of memory?
-        #
-        # For now let's be simple:
-        # - The player has a one-hot vector(32) of the cards they have in hand.
-        #       Putting this into a single vector because order is not important.
-        # - The current trick may contain up to 3 previous cards; we encode these as 3 one-hot vectors(32).
-        self._state_size = 32 + 3*32            # 128 card slots: state space << 2^128 (most are unreachable)
+        # See _encode_state()
+        self._state_size = 32 + 3*32 + 32
 
         # Action space: One action for every card.
         # Naturally, most actions will be disabled because the agent doesn't have the card or is not allowed to play it.
@@ -80,6 +70,10 @@ class DQNAgent(PlayerAgent):
         self._retrain_every_n = 8
         self._experiences_since_last_retrain = 0
 
+        # Memory: here are some things the agent remembers between moves. This is basically feature engineering,
+        # it would be more interesting to have the agent learn these with an RNN or so!
+        self._mem_cards_already_played = set()
+
         # For display in the GUI
         self._current_q_vals = None
 
@@ -97,6 +91,44 @@ class DQNAgent(PlayerAgent):
 
     def _align_target_model(self):
         self.target_network.set_weights(self.q_network.get_weights())
+
+    def _encode_state(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode) -> np.ndarray:
+        assert len(self._mem_cards_already_played) == 4 * (8-len(list(cards_in_hand)))
+
+        # A state contains:
+        # - Cards that the player has in hand (directly observed)
+        # - Cards that are in the current trick (directly observed)
+        # - All cards that have been played so far (engineered feature)
+        #
+        # Future possibilities for features:
+        # - Number of the current trick: not necessary, can be implied from len of cards_in_hand
+        # - Mapping player IDs to cards to GameMode (knowing who is declaring, and then knowing THEY played a specific card)
+        #   - Partially contained in the order of cards_in_trick, but needs initial info about player IDs
+        # - LSTM based memory of played cards, perhaps together with player IDs
+        # - Player scores, or actually a memory of all cards in all previous tricks, mapped to player IDs
+        state = np.zeros(shape=self._state_size, dtype=np.int32)
+        offset = 0
+
+        # 32 bools: cards in own hand (order does not matter)
+        for card in cards_in_hand:
+            state[offset + self._card_indices[card]] = 1
+        offset += 32
+
+        # 3x32 bools: cards in current trick before the one to be played by the agent (order is important)
+        for i, card in enumerate(cards_in_trick):
+            state[offset + i*32 + self._card_indices[card]] = 1
+        offset += 3*32
+
+        # 1x32 bools: cards that have already been played.
+        # This is an engineered feature which could also be learned by the agent if it had some memory.
+        # I'd like to try this in the future.
+        for card in self._mem_cards_already_played:
+            state[offset + self._card_indices[card]] = 1
+        offset += 32
+
+        assert offset == self._state_size
+        print(state)
+        return state
 
     def _receive_feedback(self, state, action, reward, next_state, terminated, available_actions):
         # Store the experience into the buffer and retrain the network.
@@ -152,11 +184,7 @@ class DQNAgent(PlayerAgent):
             raise ValueError("Agent is in terminal state. Did you start a new game? Need to call notify_new_game() first.")
 
         # Encode the current state. TODO: replace state and action with bool!
-        state = np.zeros(shape=self._state_size, dtype=np.int32)
-        for card in cards_in_hand:
-            state[self._card_indices[card]] = 1
-        for i, card in enumerate(cards_in_trick):
-            state[(i+1)*32 + self._card_indices[card]] = 1
+        state = self._encode_state(cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick, game_mode=game_mode)
 
         # Save experience for training (previous action led to the current state).
         if self.training and self._prev_action is not None:
@@ -205,7 +233,18 @@ class DQNAgent(PlayerAgent):
         self._prev_action = selected_action
         self._prev_available_actions = available_actions
 
+        # Memory: remember cards that were played.
+        self._mem_cards_already_played.update(cards_in_trick)
+        self._mem_cards_already_played.add(selected_card)
+
         return selected_card
+
+    def notify_trick_result(self, cards_in_trick: List[Card], rel_winner_id: int):
+        # No aux reward for individual tricks right now.
+        # But we do want to remember what players who came after us played!
+        # In the future, we may also want to remember the scores of others and ourselves.
+
+        self._mem_cards_already_played.update(cards_in_trick)
 
     def notify_game_result(self, won: bool, own_score: int, partner_score: int = None):
         # Entering the terminal state (all cards have been played and the result is announced).
@@ -234,6 +273,8 @@ class DQNAgent(PlayerAgent):
         self._prev_action = None
         self._prev_available_actions = None
         self._in_terminal_state = False
+
+        self._mem_cards_already_played.clear()
 
     def internal_card_values(self) -> Optional[Dict[Card, float]]:
         return {c: self._current_q_vals[i] for i, c in enumerate(self._cards)}

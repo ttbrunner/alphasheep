@@ -153,6 +153,8 @@ class GameController:
             win_card = game_state.current_trick_cards[i_win_card]
             win_player = game_state.players[i_win_player]
             self.logger.debug("Player {} wins the trick with card {}.".format(win_player, win_card))
+            for i, p in enumerate(self.game_state.players):
+                p.agent.notify_trick_result(game_state.current_trick_cards, rel_winner_id=i-i_win_player)
 
             # Move the trick to the scored cards of the winner.
             i_p_leader = i_win_player
