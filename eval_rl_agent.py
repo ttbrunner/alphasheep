@@ -4,6 +4,7 @@ Runs in an endless loop, constantly evaluating a checkpoint. Copies the checkpoi
 
 import glob
 import re
+from time import sleep
 
 import numpy as np
 import argparse
@@ -27,8 +28,11 @@ def main():
     parser.add_argument("checkpoint_path", help="Weights are loaded from this file.")
     parser.add_argument("--loop", help="If set, then runs in an endless loop.", required=False, action="store_true")
     args = parser.parse_args()
-    checkpoint_path = args.checkpoint_path
     do_loop = args.loop is True
+    checkpoint_path = args.checkpoint_path
+
+    # During evaluation, the checkpoint is renamed so we know that this process is working on it.
+    checkpoint_path_tmp = f"{checkpoint_path}.in_eval.pid{os.getpid()}"
 
     # Init logging and adjust log levels for some classes.
     init_logging()
@@ -36,10 +40,27 @@ def main():
     get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
     while True:
+
+        # Wait for a new checkpoint to appear (written by training script)
+        while True:
+            if os.path.exists(checkpoint_path):
+                # Rename the file so other workers don't pick it up
+                try:
+                    os.rename(checkpoint_path, checkpoint_path_tmp)
+                    break
+                except OSError:
+                    # Probably a concurrent rename by another worker; continue and try again.
+                    logger.exception("Could not rename checkpoint!")
+            else:
+                logger.info(f'No checkpoint found at "{checkpoint_path}"')
+
+            logger.info("Waiting...")
+            sleep(10)
+
         # Load the latest checkpoint and evaluate it
-        logger.info('Evaluating latest checkpoint.'.format(checkpoint_path))
+        logger.info('Found a new checkpoint, evaluating...')
         alphasau_agent = DQNAgent(training=False)
-        alphasau_agent.load_weights(checkpoint_path)
+        alphasau_agent.load_weights(checkpoint_path_tmp)
         current_perf = eval_checkpoint(alphasau_agent)
 
         # Now we know the performance. Find best-performing previous checkpoint that exists on disk
@@ -54,9 +75,8 @@ def main():
                     best_perf = p
 
         logger.info("Comparing performance to previous checkpoints...")
-
         if best_perf > 0:
-            logger.info("Found previous checkpoint with performance {}".format(best_perf))
+            logger.info("Previously best checkpoint has performance {}".format(best_perf))
         else:
             logger.info("Did not find any previous results.")
 
@@ -68,10 +88,10 @@ def main():
             try:
                 # The probability of a race condition between multiple eval processses is miniscule,
                 # as the exact filename needs to collide at the same time as multiple saves. Not impossible though!
-                alphasau_agent.save_weights(cp_best)
+                os.rename(checkpoint_path_tmp, cp_best)
             except OSError as ex:
                 # Log & continue.
-                logger.exception(f"Could not save weights of best checkpoint: {ex}")
+                logger.exception(f"Could not rename checkpoint: {ex}")
 
         if not do_loop:
             # Run only once.
