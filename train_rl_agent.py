@@ -4,6 +4,7 @@ Runs a large number of games without the GUI. Use this to train an agent.
 import argparse
 import logging
 import os
+import shutil
 from collections import deque
 
 from agents.agents import RandomCardAgent
@@ -81,9 +82,11 @@ def main():
                 logger.info("Ran {} Episodes. Win rate (last {} episodes) is {:.1%}. Speed is {:.0f} episodes/second.".format(
                     i_episode, sma_window_len, win_rate, i_episode/s_elapsed))
 
-            # Save model checkpoint
+            # Save model checkpoint.
+            # Also make a copy for evaluation - the eval jobs will sync on this file and later remove it.
             if weights_path is not None and timer() - time_last_save > save_every_s:
                 alphasau_agent.save_weights(weights_path, overwrite=True)
+                shutil.copyfile(weights_path, f"{os.path.splitext(weights_path)[0]}.for_eval.h5")
                 time_last_save = timer()
 
         winners = controller.run_game()

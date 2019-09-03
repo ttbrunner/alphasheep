@@ -31,7 +31,10 @@ def main():
     do_loop = args.loop is True
     checkpoint_path = args.checkpoint_path
 
-    # During evaluation, the checkpoint is renamed so we know that this process is working on it.
+    # Wait until a ".for_eval" checkpoint exists. Then rename it to ".in_eval".
+    # After the end, it will be renamed to ".{score}".
+    # In this way, both the training and multiple eval scripts can run in parallel, and
+    checkpoint_path_in = f"{os.path.splitext(checkpoint_path)[0]}.for_eval.h5"
     checkpoint_path_tmp = f"{os.path.splitext(checkpoint_path)[0]}.in_eval.pid{os.getpid()}.h5"
 
     # Init logging and adjust log levels for some classes.
@@ -41,18 +44,18 @@ def main():
 
     while True:
 
-        # Wait for a new checkpoint to appear (written by training script)
+        # Wait until a new "for_eval" checkpoint exists (provided by the training script)
         while True:
-            if os.path.exists(checkpoint_path):
-                # Rename the file so other workers don't pick it up
+            if os.path.exists(checkpoint_path_in):
+                # Rename the file to "in_eval" and mark with PID so we don't collide with other workers
                 try:
-                    os.rename(checkpoint_path, checkpoint_path_tmp)
+                    os.rename(checkpoint_path_in, checkpoint_path_tmp)
                     break
                 except OSError:
                     # Probably a concurrent rename by another worker; continue and try again.
                     logger.exception("Could not rename checkpoint!")
             else:
-                logger.info(f'No checkpoint found at "{checkpoint_path}"')
+                logger.info(f'No checkpoint found at "{checkpoint_path_in}"')
 
             logger.info("Waiting...")
             sleep(10)
