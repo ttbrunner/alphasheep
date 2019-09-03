@@ -15,7 +15,9 @@ class GUIAgent(PlayerAgent):
     Whenever the agent has to do an action, it will run the callback - the GUI will then wait for and determine the user action.
     """
 
-    def __init__(self):
+    def __init__(self, player_id: int):
+        super().__init__(player_id)
+
         self.logger = get_class_logger(self)
         self._select_card_callback = None
 

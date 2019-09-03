@@ -6,6 +6,7 @@ import logging
 import os
 
 from agents.dqn_agent import DQNAgent
+from agents.rule_based_agent import RuleBasedAgent
 from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
 from game.card import Suit
@@ -20,7 +21,7 @@ from log_util import init_logging, get_class_logger, get_named_logger
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--p0-agent", type=str, choices=['random', 'alphasau', 'user'], required=True)
+    parser.add_argument("--p0-agent", type=str, choices=['rule', 'random', 'alphasau', 'user'], required=True)
     parser.add_argument("--alphasau_checkpoint", help="Checkpoint for AlphaSau, if --p0-agent=alphasau.", required=False)
     args = parser.parse_args()
     agent_choice = args.p0_agent
@@ -36,19 +37,22 @@ def main():
 
     if agent_choice == "alphasau":
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)
-        alphasau_agent = DQNAgent(training=False)
+        alphasau_agent = DQNAgent(0, training=False)
         alphasau_agent.load_weights(as_checkpoint_path)
         p0 = Player("0-AlphaSau", agent=alphasau_agent)
     elif agent_choice == "user":
-        p0 = Player("0-User", agent=GUIAgent())
+        p0 = Player("0-User", agent=GUIAgent(0))
+    elif agent_choice == "rule":
+        p0 = Player("0-rul0r", agent=RuleBasedAgent(0))
+        get_class_logger(RuleBasedAgent).setLevel(logging.DEBUG)
     else:
-        p0 = Player("0-Hans", agent=RandomCardAgent())
+        p0 = Player("0-Hans", agent=RandomCardAgent(0))
 
     players = [
         p0,
-        Player("1-Zenzi", agent=RandomCardAgent()),
-        Player("2-Franz", agent=RandomCardAgent()),
-        Player("3-Andal", agent=RandomCardAgent())
+        Player("1-Zenzi", agent=RandomCardAgent(1)),
+        Player("2-Franz", agent=RandomCardAgent(2)),
+        Player("3-Andal", agent=RandomCardAgent(3))
     ]
 
     # # Deal fairly and allow agents to choose their game.

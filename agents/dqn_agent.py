@@ -24,12 +24,14 @@ class DQNAgent(PlayerAgent):
     limited scenario.
     """
 
-    def __init__(self, training):
+    def __init__(self, player_id: int, training: bool):
         """
         Creates a new DQNAgent.
+        :param player_id: The unique id of the player (0-3).
         :param training: if True, will train during play. This usually means worse performance (because of exploration). If False,
                          then the agent will always pick the best action (according to Q-value).
         """
+        super().__init__(player_id)
 
         self.logger = get_class_logger(self)
         self.training = training

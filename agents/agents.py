@@ -14,6 +14,10 @@ class PlayerAgent(ABC):
           unwanted behavior. I strongly recommend the @override decorator for the optional methods.
     """
 
+    def __init__(self, player_id: int):
+        assert 0 <= player_id < 4
+        self.player_id = player_id
+
     @abstractmethod
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode) -> Card:
         """
@@ -60,7 +64,7 @@ class PlayerAgent(ABC):
 
 class RandomCardAgent(PlayerAgent):
     """
-    Baseline agent. Selects a random card from its hand and plays it.
+    Dummy agent. Selects a random card from its hand and plays it.
     """
 
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):

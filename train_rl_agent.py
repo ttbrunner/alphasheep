@@ -61,7 +61,7 @@ def main():
     sma_window_len = 1000
     won_deque = deque()
 
-    save_every_s = 60
+    save_every_s = 120
 
     time_start = timer()
     time_last_save = timer()
