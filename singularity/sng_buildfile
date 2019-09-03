@@ -1,4 +1,5 @@
 # Script to create a Singularity container in which the project can run. Uses TF2.0b1 GPU.
+# Run sudo singularity build <image_name> sng_buildfile
 
 BootStrap: docker
 FROM: tensorflow/tensorflow:2.0.0b1-gpu-py3
@@ -7,21 +8,21 @@ FROM: tensorflow/tensorflow:2.0.0b1-gpu-py3
 %runscript
     exec /usr/bin/python3 "$@"
 
+# These files will be copied before building.
+%files
+    ../requirements.txt /requirements.txt
+
 # These commands will be executed inside of the container during building.
 %post
 	apt-get update
 	#apt install -y libsm6 libxext6 libgtk2.0-dev tmux less unzip git
 
 	# The pip3 wrapper has some weird problem, see https://github.com/pypa/pip/issues/5447
-	# So we can only call pip in this way.
+	# So we can't call pip, but need to use python3 -m pip.
+    python3 -m pip install -r requirements.txt
 
-	python3 -m pip install pygame
-    python3 -m pip install "numpy<1.17,>=1.14.5"
-	python3 -m pip install matplotlib
 	touch matplotlibrc
-	python3 -m pip install seaborn
-	python3 -m pip install scikit-learn
-	python3 -m pip install scipy
+
 
 # Environment variables.
 # Set matplotlib to not try and use Display0, which would crash any script relying on mpl.
