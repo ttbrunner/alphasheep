@@ -35,34 +35,43 @@ def main():
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
-    # Find best checkpoint that exists on disk
-    splitext = os.path.splitext(checkpoint_path)
-    checkpoints = glob.glob(os.path.join(os.path.dirname(checkpoint_path), "{}-*{}".format(splitext[0], splitext[1])))
-    best_perf = 0.
-    for cp in checkpoints:
-        perf_str = re.findall(r"{}-(.*){}".format(os.path.basename(splitext[0]), splitext[1]), cp)
-        if len(perf_str) > 0:
-            perf = float(perf_str[0])
-            if perf > best_perf:
-                best_perf = perf
-
-    if best_perf > 0:
-        logger.info("Found previous best checkpoint with performance {}".format(best_perf))
-    else:
-        logger.info("Did not find any previous results.")
-
     while True:
         # Load the latest checkpoint and evaluate it
         logger.info('Evaluating latest checkpoint.'.format(checkpoint_path))
         alphasau_agent = DQNAgent(training=False)
         alphasau_agent.load_weights(checkpoint_path)
-        cp_perf = eval_checkpoint(alphasau_agent)
+        current_perf = eval_checkpoint(alphasau_agent)
 
-        if cp_perf > best_perf:
-            best_perf = cp_perf
+        # Now we know the performance. Find best-performing previous checkpoint that exists on disk
+        splitext = os.path.splitext(checkpoint_path)
+        checkpoints = glob.glob(os.path.join(os.path.dirname(checkpoint_path), "{}-*{}".format(splitext[0], splitext[1])))
+        best_perf = 0.
+        for cp in checkpoints:
+            perf_str = re.findall(r"{}-(.*){}".format(os.path.basename(splitext[0]), splitext[1]), cp)
+            if len(perf_str) > 0:
+                p = float(perf_str[0])
+                if p > best_perf:
+                    best_perf = p
+
+        logger.info("Comparing performance to previous checkpoints...")
+
+        if best_perf > 0:
+            logger.info("Found previous checkpoint with performance {}".format(best_perf))
+        else:
+            logger.info("Did not find any previous results.")
+
+        if current_perf > best_perf:
+            best_perf = current_perf
             logger.info("Found new best-performing checkpoint!")
             cp_best = "{}-{}{}".format(splitext[0], str(best_perf), splitext[1])
-            alphasau_agent.save_weights(cp_best)
+
+            try:
+                # The probability of a race condition between multiple eval processses is miniscule,
+                # as the exact filename needs to collide at the same time as multiple saves. Not impossible though!
+                alphasau_agent.save_weights(cp_best)
+            except OSError as ex:
+                # Log & continue.
+                logger.exception(f"Could not save weights of best checkpoint: {ex}")
 
         if not do_loop:
             # Run only once.
