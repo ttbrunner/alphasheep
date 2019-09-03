@@ -22,7 +22,7 @@ from log_util import init_logging, get_class_logger, get_named_logger
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--p0-agent", type=str, choices=['rule', 'random', 'alphasau', 'user'], required=True)
-    parser.add_argument("--alphasau_checkpoint", help="Checkpoint for AlphaSau, if --p0-agent=alphasau.", required=False)
+    parser.add_argument("--alphasau-checkpoint", help="Checkpoint for AlphaSau, if --p0-agent=alphasau.", required=False)
     args = parser.parse_args()
     agent_choice = args.p0_agent
     as_checkpoint_path = args.alphasau_checkpoint
