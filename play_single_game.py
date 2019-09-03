@@ -37,8 +37,7 @@ def main():
     if agent_choice == "alphasau":
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)
         alphasau_agent = DQNAgent(training=False)
-        logger.info(f'Loading weights from "{as_checkpoint_path}"...')
-        #alphasau_agent.load_weights(as_checkpoint_path)
+        alphasau_agent.load_weights(as_checkpoint_path)
         p0 = Player("0-AlphaSau", agent=alphasau_agent)
     elif agent_choice == "user":
         p0 = Player("0-User", agent=GUIAgent())
@@ -65,16 +64,17 @@ def main():
     #
     # Since everything is done synchronously, the GUI can block on every event (and wait for the user to click).
     # In this way, the GUI can be used to debug and watch a single game.
-    gui = Gui(controller.game_state)
+    logger.info("Starting GUI.")
+    with Gui(controller.game_state) as gui:
+        # Run an endless loop of single games.
+        logger.info("Starting game loop...")
+        try:
+            while True:
+                controller.run_game()
+        except UserQuitGameException:
+            logger.info("User quit game.")
 
-    # Run a single game before terminating.
-    logger.info("Starting game loop...")
-    try:
-        while True:
-            controller.run_game()
-    except UserQuitGameException:
-        logger.info("User quit game.")
-    logger.info("Finished playing.")
+    logger.info("Shutdown.")
 
 
 if __name__ == '__main__':

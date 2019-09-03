@@ -38,7 +38,6 @@ def main():
         if not os.path.exists(weights_path):
             logger.info('Weights file "{}" does not exist. Will create new file.'.format(weights_path))
         else:
-            logger.info('Loading weights from "{}..."'.format(weights_path))
             alphasau_agent.load_weights(weights_path)
 
     players = [
@@ -86,7 +85,6 @@ def main():
             if weights_path is not None and timer() - time_last_save > save_every_s:
                 alphasau_agent.save_weights(weights_path, overwrite=True)
                 time_last_save = timer()
-                logger.info('Saved weights to "{}".'.format(weights_path))
 
         winners = controller.run_game()
         won = winners[0]

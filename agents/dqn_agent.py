@@ -1,6 +1,8 @@
 import numpy as np
 from collections import deque
 from typing import Iterable, List, Dict, Optional
+
+from overrides import overrides
 from tensorflow.python.keras import Sequential
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.optimizers import Adam
@@ -65,8 +67,8 @@ class DQNAgent(PlayerAgent):
         self._batch_size = 32
 
         # Don't retrain after every single experience.
-        # If we retrain every time, then the probability of a new experience actually being in the training batch is super low.
-        # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing (expensive) training.
+        # Retraining every time is expensive and doesn't add much information (rewards are received only at the end of the game).
+        # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing expensive training.
         self._retrain_every_n = 8
         self._experiences_since_last_retrain = 0
 
@@ -78,8 +80,11 @@ class DQNAgent(PlayerAgent):
         self._current_q_vals = None
 
     def _build_model(self):
+        # Build the Q-network.
+        # This is just a first shot - the game is pretty simple so intuitively I'd say the network is a bit on the large side.
+        # But then again, this typically doesn't stop DL from performing well, so let's stick with it for now.
+
         model = Sequential()
-        # TODO: Is this state embedding (everything one-hot) suitable?
         model.add(Dense(256, activation='relu', input_shape=(self._state_size,)))
         model.add(Dense(128, activation='relu'))
         model.add(Dense(64, activation='relu'))
@@ -92,9 +97,7 @@ class DQNAgent(PlayerAgent):
     def _align_target_model(self):
         self.target_network.set_weights(self.q_network.get_weights())
 
-    def _encode_state(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode) -> np.ndarray:
-        assert len(self._mem_cards_already_played) == 4 * (8-len(list(cards_in_hand)))
-
+    def _encode_state(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card]) -> np.ndarray:
         # A state contains:
         # - Cards that the player has in hand (directly observed)
         # - Cards that are in the current trick (directly observed)
@@ -106,6 +109,9 @@ class DQNAgent(PlayerAgent):
         #   - Partially contained in the order of cards_in_trick, but needs initial info about player IDs
         # - LSTM based memory of played cards, perhaps together with player IDs
         # - Player scores, or actually a memory of all cards in all previous tricks, mapped to player IDs
+
+        assert len(self._mem_cards_already_played) == 4 * (8-len(list(cards_in_hand)))
+
         state = np.zeros(shape=self._state_size, dtype=np.int32)
         offset = 0
 
@@ -131,10 +137,11 @@ class DQNAgent(PlayerAgent):
 
     def _receive_feedback(self, state, action, reward, next_state, terminated, available_actions):
         # Store the experience into the buffer and retrain the network.
-        assert self.training is True
 
+        assert self.training is True
         self.experience_buffer.append((state, action, reward, next_state, terminated, available_actions))
 
+        # Only train every n experiences (speed up training)
         self._experiences_since_last_retrain += 1
         if self._experiences_since_last_retrain < self._retrain_every_n or len(self.experience_buffer) < self._batch_size:
             return
@@ -163,9 +170,10 @@ class DQNAgent(PlayerAgent):
         q_curr = self.q_network.predict(state_batch)
         q_next = self.target_network.predict(next_state_batch)
 
-        # Terminal state: the cumulative reward is exactly the observation.
-        # Nonterminal state: the cumulative reward is the observation + expected future reward
-        # TODO on Gamma: do we need this distinction? If we assign 1 at the end, then we are strictly episodic anyway.
+        # Terminal state: the cumulative future reward is exactly the observation.
+        # Nonterminal state: the cumulative future reward is the observation + expected future reward
+        # TODO on Gamma: revise notes. Would it be possible in theory to remove the discount?
+        #                This should be an episodic task with rewards only in the terminal states.
         nonterminal_filter = (terminated_batch == 0)
         exp_reward = reward_batch.copy()
         exp_reward[nonterminal_filter] += self._gamma * np.amax(q_next, axis=1)[nonterminal_filter]
@@ -182,8 +190,8 @@ class DQNAgent(PlayerAgent):
         if self._in_terminal_state:
             raise ValueError("Agent is in terminal state. Did you start a new game? Need to call notify_new_game() first.")
 
-        # Encode the current state. TODO: replace state and action with bool!
-        state = self._encode_state(cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick, game_mode=game_mode)
+        # Encode the current state.
+        state = self._encode_state(cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick)
 
         # Save experience for training (previous action led to the current state).
         if self.training and self._prev_action is not None:
@@ -215,7 +223,6 @@ class DQNAgent(PlayerAgent):
             i_best_actions = np.argsort(q_values)[::-1]
             self.logger.debug("Q values:\n" + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
 
-            # Don't set unavailable actions to 0, because the agent can actually learn negative Q-values for valid actions
             for i_action in i_best_actions:
                 if available_actions[i_action]:
                     selected_card = self._cards[i_action]
@@ -238,13 +245,15 @@ class DQNAgent(PlayerAgent):
 
         return selected_card
 
-    def notify_trick_result(self, cards_in_trick: List[Card], rel_winner_id: int):
+    @overrides
+    def notify_trick_result(self, cards_in_trick: List[Card], rel_taker_id: int):
         # No aux reward for individual tricks right now.
         # But we do want to remember what players who came after us played!
         # In the future, we may also want to remember the scores of others and ourselves.
 
         self._mem_cards_already_played.update(cards_in_trick)
 
+    @overrides
     def notify_game_result(self, won: bool, own_score: int, partner_score: int = None):
         # Entering the terminal state (all cards have been played and the result is announced).
 
@@ -264,6 +273,7 @@ class DQNAgent(PlayerAgent):
                                    terminated=True, available_actions=self._prev_available_actions)
             self._align_target_model()          # The episode is over, sync the models.
 
+    @overrides
     def notify_new_game(self):
         # Reset everything concerning the current game state.
         # Don't reset the models and experiences of course.
@@ -276,12 +286,15 @@ class DQNAgent(PlayerAgent):
 
         self._mem_cards_already_played.clear()
 
+    @overrides
     def internal_card_values(self) -> Optional[Dict[Card, float]]:
         return {c: self._current_q_vals[i] for i, c in enumerate(self._cards)}
 
     def save_weights(self, filepath, overwrite=True):
+        self.logger.info(f'Saving weights to "{filepath}"...')
         self.q_network.save_weights(filepath, overwrite=overwrite)
 
     def load_weights(self, filepath):
+        self.logger.info(f'Loading weights from "{filepath}"...')
         self.q_network.load_weights(filepath)
         self._align_target_model()

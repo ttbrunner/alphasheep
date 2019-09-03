@@ -27,11 +27,9 @@ class Gui:
 
         self.game_state = game_state
         self.resolution = resolution
-        self.is_running = False
-        self.game_state.ev_changed.subscribe(self.on_game_state_changed)                # TODO: Also unsusbscribe at some point.
 
-        self._screen = pygame.display.set_mode(self.resolution)                         # Display screen
-        self._card_assets = {card: pygame.image.load(get_card_img_path(card)).convert() for card in new_deck()}
+        self._screen = None
+        self._card_assets = None
         self._fps_clock = pygame.time.Clock()
 
         # Every player has a "Card surface" onto which their cards are drawn.
@@ -52,20 +50,33 @@ class Gui:
         self._clicked_pos = None
         self._clicked_card = None        # For now, these are only Player 0's cards.
 
+    def __enter__(self):
+        self._screen = pygame.display.set_mode(self.resolution)
+        self._card_assets = {card: pygame.image.load(get_card_img_path(card)).convert() for card in new_deck()}
+
+        # Subscribe to events of the controller
+        self.game_state.ev_changed.subscribe(self.on_game_state_changed)
+
         # If a player agent is the GUIAgent, register a callback that waits until the user selects a card.
-        self._gui_agent_attached = False
-        assert not any(isinstance(p.agent, GUIAgent) for p in game_state.players[1:]), "Only Player 0 can have a GUIAgent."
-        if isinstance(game_state.players[0].agent, GUIAgent):
+        assert not any(isinstance(p.agent, GUIAgent) for p in self.game_state.players[1:]), "Only Player 0 can have a GUIAgent."
+        if isinstance(self.game_state.players[0].agent, GUIAgent):
             def select_card_callback(reset_clicks=False):
                 if reset_clicks:
                     self._clicked_pos = None
                 self._clicked_card = None
                 self.wait_and_draw_until(lambda: self._clicked_card is not None)
                 return self._clicked_card
-            game_state.players[0].agent.register_gui_callback(select_card_callback)
-            self._gui_agent_attached = True
+            self.game_state.players[0].agent.register_gui_callback(select_card_callback)
 
         pygame.display.set_caption("AlphaSau")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        # Unsubscribe all events and callbacks
+        if isinstance(self.game_state.players[0].agent, GUIAgent):
+            self.game_state.players[0].agent.unregister_callback()
+        self.game_state.ev_changed.unsubscribe(self.on_game_state_changed)
+
+        pygame.quit()
 
     def _draw_player_cards(self):
         # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the Player object.

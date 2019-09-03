@@ -53,7 +53,7 @@ def main():
 
     while True:
         # Load the latest checkpoint and evaluate it
-        logger.info('Evaluating latest checkpoint "{}..."'.format(checkpoint_path))
+        logger.info('Evaluating latest checkpoint.'.format(checkpoint_path))
         alphasau_agent = DQNAgent(training=False)
         alphasau_agent.load_weights(checkpoint_path)
         cp_perf = eval_checkpoint(alphasau_agent)
@@ -62,7 +62,6 @@ def main():
             best_perf = cp_perf
             logger.info("Found new best-performing checkpoint!")
             cp_best = "{}-{}{}".format(splitext[0], str(best_perf), splitext[1])
-            logger.info('Saving checkpoint to "{}..."'.format(cp_best))
             alphasau_agent.save_weights(cp_best)
 
         if not do_loop:

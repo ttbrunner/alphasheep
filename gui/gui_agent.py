@@ -19,11 +19,14 @@ class GUIAgent(PlayerAgent):
         self.logger = get_class_logger(self)
         self._select_card_callback = None
 
-    def register_gui_callback(self, select_card_callback: Callable):
+    def register_gui_callback(self, select_card_callback):
         self._select_card_callback = select_card_callback
 
+    def unregister_callback(self):
+        self._select_card_callback = None
+
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode) -> Card:
-        assert self._select_card_callback is not None, "Must first call attach_to_gui()!"
+        assert self._select_card_callback is not None, "Must first attach to a Gui!"
 
         # Have the user select cards until they hit something that is actually allowed :)
         reset_click = False
