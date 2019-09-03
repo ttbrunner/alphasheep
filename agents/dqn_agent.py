@@ -251,7 +251,8 @@ class DQNAgent(PlayerAgent):
         assert self._prev_action is not None and self._prev_state is not None
 
         if self.training:
-            state = np.zeros(self._state_size, dtype=np.int32)        # In the terminal state, there are no cards
+            # In the terminal state, there are no cards
+            state = self._encode_state(cards_in_hand=[], cards_in_trick=[])
 
             # TODO: we may want to increase reward based on total score. Something like that...?
             # reward = own_score if won else 0.
