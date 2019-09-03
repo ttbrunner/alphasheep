@@ -32,7 +32,7 @@ def main():
     checkpoint_path = args.checkpoint_path
 
     # During evaluation, the checkpoint is renamed so we know that this process is working on it.
-    checkpoint_path_tmp = f"{checkpoint_path}.in_eval.pid{os.getpid()}"
+    checkpoint_path_tmp = f"{os.path.splitext(checkpoint_path)[0]}.in_eval.pid{os.getpid()}.h5"
 
     # Init logging and adjust log levels for some classes.
     init_logging()
