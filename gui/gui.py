@@ -181,7 +181,11 @@ class Gui:
 
             y = 0
             self._player_text_surfs[i].fill((0, 0, 0))
-            self._font.render_to(self._player_text_surfs[i], (0, y), f"Player: {p.name}",
+            self._font.render_to(self._player_text_surfs[i], (0, y), f"Name: {p.name}",
+                                 fgcolor=txt_color)
+            y += 20
+
+            self._font.render_to(self._player_text_surfs[i], (0, y), f"Agent: {p.agent.__class__.__name__}",
                                  fgcolor=txt_color)
             y += 20
 

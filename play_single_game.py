@@ -43,7 +43,7 @@ def main():
     elif agent_choice == "user":
         p0 = Player("0-User", agent=GUIAgent(0))
     elif agent_choice == "rule":
-        p0 = Player("0-rul0r", agent=RuleBasedAgent(0))
+        p0 = Player("0-Hans", agent=RuleBasedAgent(0))
         get_class_logger(RuleBasedAgent).setLevel(logging.DEBUG)
     else:
         p0 = Player("0-Hans", agent=RandomCardAgent(0))
