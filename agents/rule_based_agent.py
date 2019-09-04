@@ -152,7 +152,7 @@ class RuleBasedAgent(PlayerAgent):
             else:
                 # No sau: don't play 10 etc., rather play a small card and hope our partners have the sau
                 action = "play_spatz"
-                selected_card = self._cards_by_value(valid_cards)[0]
+                selected_card = self._cards_by_value(non_trumps if any(non_trumps) else own_trumps)[0]
 
         else:
             # Not leading.
@@ -168,7 +168,7 @@ class RuleBasedAgent(PlayerAgent):
             for i in range(len(cards_in_trick)):
                 i_p = (i_p - 1) % 4
                 if i_p == enemy_id:
-                    enemy_card_id = i
+                    enemy_card_id = len(cards_in_trick) - 1 - i
                     break
             enemy_card = cards_in_trick[enemy_card_id] if enemy_card_id is not None else None
 
@@ -230,11 +230,14 @@ class RuleBasedAgent(PlayerAgent):
                                 action = "beat_expensive"
                                 selected_card = self._cards_by_value(beating_cards)[-1]
                         else:
-                            # We must match the suit and can beat our partner. Do it, since this probably means playing the sau, which is good.
+                            # We must match the suit and can beat our partner.
+                            # Do it, since this probably means playing the sau, which is good.
                             action = "match_expensive"
                             selected_card = self._cards_by_value(valid_cards)[-1]
                     else:
                         # The partner lead is non-trump and we can't beat the partners.
+                        # TODO: special situation: did the 2nd partner beat with a trump,
+                        #  so high that the enemy won't be able to take it? then schmier.
                         if any(c for c in cards_in_trick if c.suit == cards_in_trick[0] and c.pip == Pip.sau):
                             # One of the partners played the suit-sau. We hope the enemy needs to match!
                             # TODO: don't schmier if it's clear from memory that the enemy can beat it.
@@ -283,5 +286,5 @@ class RuleBasedAgent(PlayerAgent):
         else:
             # The highest card of the suit of the first card wins.
             suit = cards_in_trick[0].suit
-            suit_cards = sorted((c for c in cards_in_trick if c.suit == suit), key=lambda c: self._pip_power[c])
+            suit_cards = sorted((c for c in cards_in_trick if c.suit == suit), key=lambda c: self._pip_power[c.pip])
             return suit_cards[-1]

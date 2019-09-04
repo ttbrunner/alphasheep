@@ -34,6 +34,7 @@ def main():
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.DEBUG)        # Log every single card.
     get_class_logger(Gui).setLevel(logging.DEBUG)                   # Log mouse clicks.
+    get_class_logger(RuleBasedAgent).setLevel(logging.DEBUG)        # Log decisions by the rule-based players.
 
     if agent_choice == "alphasau":
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)
@@ -44,15 +45,15 @@ def main():
         p0 = Player("0-User", agent=GUIAgent(0))
     elif agent_choice == "rule":
         p0 = Player("0-Hans", agent=RuleBasedAgent(0))
-        get_class_logger(RuleBasedAgent).setLevel(logging.DEBUG)
+
     else:
         p0 = Player("0-Hans", agent=RandomCardAgent(0))
 
     players = [
         p0,
-        Player("1-Zenzi", agent=RandomCardAgent(1)),
-        Player("2-Franz", agent=RandomCardAgent(2)),
-        Player("3-Andal", agent=RandomCardAgent(3))
+        Player("1-Zenzi", agent=RuleBasedAgent(1)),
+        Player("2-Franz", agent=RuleBasedAgent(2)),
+        Player("3-Andal", agent=RuleBasedAgent(3))
     ]
 
     # # Deal fairly and allow agents to choose their game.
