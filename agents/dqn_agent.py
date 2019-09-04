@@ -3,7 +3,7 @@ from collections import deque
 from typing import Iterable, List, Dict, Optional
 
 from overrides import overrides
-from tensorflow.python.keras import Sequential
+from tensorflow.python.keras import Sequential, Input
 from tensorflow.python.keras.layers import Dense
 from tensorflow.python.keras.optimizers import Adam
 
@@ -24,16 +24,19 @@ class DQNAgent(PlayerAgent):
     limited scenario.
     """
 
-    def __init__(self, player_id: int, training: bool):
+    def __init__(self, player_id: int, config: Dict, training: bool):
         """
         Creates a new DQNAgent.
         :param player_id: The unique id of the player (0-3).
+        :param config: the config dict (root).
         :param training: if True, will train during play. This usually means worse performance (because of exploration). If False,
                          then the agent will always pick the best action (according to Q-value).
         """
         super().__init__(player_id)
 
         self.logger = get_class_logger(self)
+        config = config["agent_config"]["dqn_agent"]
+        self.config = config
         self.training = training
 
         # In both states and actions, cards are encoded as one-hot vectors of size 32.
@@ -41,19 +44,24 @@ class DQNAgent(PlayerAgent):
         self._cards = new_deck()
         self._card_indices = {card: i for i, card in enumerate(self._cards)}
 
-        # See _encode_state()
-        self._state_size = 32 + 3*32 + 32
+        # Determine length of state vector.
+        state_lens = {
+            "cards_in_hand": 32,
+            "cards_in_trick": 3*32,
+            "cards_already_played": 32
+        }
+        self._state_size = sum(state_lens[x] for x in config["state_contents"])
 
         # Action space: One action for every card.
         # Naturally, most actions will be disabled because the agent doesn't have the card or is not allowed to play it.
         self._action_size = 32
 
         # Discount and exploration rate
-        self._gamma = 0.6
-        self._epsilon = 0.1
+        self._gamma = config["gamma"]
+        self._epsilon = config["epsilon"]
 
         # Experience replay buffer for minibatch learning
-        self.experience_buffer = deque(maxlen=2000)
+        self.experience_buffer = deque(maxlen=config["experience_buffer_len"])
 
         # Remember the state and action (card) played in the previous trick, so we can can judge it once we receive feedback.
         # Also remember which actions were available - we can experiment with setting their Q to zero.
@@ -66,12 +74,12 @@ class DQNAgent(PlayerAgent):
         self.q_network = self._build_model()
         self.target_network = self._build_model()
         self._align_target_model()
-        self._batch_size = 32
+        self._batch_size = config["batch_size"]
 
         # Don't retrain after every single experience.
         # Retraining every time is expensive and doesn't add much information (rewards are received only at the end of the game).
         # If we wait for more experiences to accumulate before retraining, we get more fresh data before doing expensive training.
-        self._retrain_every_n = 8
+        self._retrain_every_n = config["retrain_every"]
         self._experiences_since_last_retrain = 0
 
         # Memory: here are some things the agent remembers between moves. This is basically feature engineering,
@@ -87,12 +95,12 @@ class DQNAgent(PlayerAgent):
         # But then again, this typically doesn't stop DL from performing well, so let's stick with it for now.
 
         model = Sequential()
-        model.add(Dense(384, activation='relu', input_shape=(self._state_size,)))
-        model.add(Dense(256, activation='relu'))
-        model.add(Dense(128, activation='relu'))
+        model.add(Input(shape=(self._state_size,)))
+        for i, neurons in enumerate(self.config["model_neurons"]):
+            model.add(Dense(neurons, activation='relu'))
         model.add(Dense(self._action_size, activation='linear'))
 
-        optimizer = Adam(lr=0.001)
+        optimizer = Adam(lr=self.config["lr"])
         model.compile(loss='mse', optimizer=optimizer)
         return model
 
@@ -117,27 +125,34 @@ class DQNAgent(PlayerAgent):
         state = np.zeros(shape=self._state_size, dtype=np.int32)
         offset = 0
 
-        # 32 bools: cards in own hand (order does not matter)
-        for card in cards_in_hand:
-            state[offset + self._card_indices[card]] = 1
-        offset += 32
+        for comp in self.config["state_contents"]:
+            if comp == "cards_in_hand":
+                # 32 bools: cards in own hand (order does not matter)
+                for card in cards_in_hand:
+                    state[offset + self._card_indices[card]] = 1
+                offset += 32
 
-        # 3x32 bools: cards in current trick before the one to be played by the agent (order is important)
-        for i, card in enumerate(cards_in_trick):
-            state[offset + i*32 + self._card_indices[card]] = 1
-        offset += 3*32
+            elif comp == "cards_in_trick":
+                # 3x32 bools: cards in current trick before the one to be played by the agent (order is important)
+                for i, card in enumerate(cards_in_trick):
+                    state[offset + i*32 + self._card_indices[card]] = 1
+                offset += 3*32
 
-        # 1x32 bools: cards that have already been played.
-        # This is an engineered feature which could also be learned by the agent if it had some memory.
-        # I'd like to try this in the future.
-        for card in self._mem_cards_already_played:
-            state[offset + self._card_indices[card]] = 1
-        offset += 32
+            elif comp == "cards_already_played":
+                # 1x32 bools: cards that have already been played.
+                # This is an engineered feature which could also be learned by the agent if it had some memory.
+                # I'd like to try this in the future.
+                for card in self._mem_cards_already_played:
+                    state[offset + self._card_indices[card]] = 1
+                offset += 32
+
+            else:
+                raise ValueError(r'Unknown state component name: "{x}"')
 
         assert offset == self._state_size
         return state
 
-    def _receive_feedback(self, state, action, reward, next_state, terminated, available_actions):
+    def _receive_experience(self, state, action, reward, next_state, terminated, available_actions):
         # Store the experience into the buffer and retrain the network.
 
         assert self.training is True
@@ -198,8 +213,8 @@ class DQNAgent(PlayerAgent):
         # Save experience for training (previous action led to the current state).
         if self.training and self._prev_action is not None:
             # Right now, we provide rewards only at the end of the game.
-            self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=0, next_state=state,
-                                   terminated=False, available_actions=self._prev_available_actions)
+            self._receive_experience(state=self._prev_state, action=self._prev_action, reward=0, next_state=state,
+                                     terminated=False, available_actions=self._prev_available_actions)
 
         # Create a mask of available actions.
         available_actions = np.zeros(self._action_size, dtype=np.bool)
@@ -260,7 +275,6 @@ class DQNAgent(PlayerAgent):
         # Entering the terminal state (all cards have been played and the result is announced).
 
         assert self._prev_action is not None and self._prev_state is not None
-
         if self.training:
             # In the terminal state, there are no cards
             state = self._encode_state(cards_in_hand=[], cards_in_trick=[])
@@ -271,8 +285,8 @@ class DQNAgent(PlayerAgent):
             self._in_terminal_state = True
 
             # Add feedback, sync
-            self._receive_feedback(state=self._prev_state, action=self._prev_action, reward=reward, next_state=state,
-                                   terminated=True, available_actions=self._prev_available_actions)
+            self._receive_experience(state=self._prev_state, action=self._prev_action, reward=reward, next_state=state,
+                                     terminated=True, available_actions=self._prev_available_actions)
             self._align_target_model()          # The episode is over, sync the models.
 
     @overrides

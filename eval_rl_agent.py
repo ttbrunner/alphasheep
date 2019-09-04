@@ -14,16 +14,21 @@ from agents.dqn_agent import DQNAgent
 from controller.game_controller import GameController
 from eval_util import eval_agent
 from log_util import init_logging, get_class_logger, get_named_logger
+from utils import load_config
 
 
 def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("checkpoint_path", help="Weights are loaded from this file.")
+    parser.add_argument("--config", help="A yaml config file. Must always be specified.", required=True)
     parser.add_argument("--loop", help="If set, then runs in an endless loop.", required=False, action="store_true")
     args = parser.parse_args()
     do_loop = args.loop is True
     checkpoint_path = args.checkpoint_path
+
+    # Only the agent configs are important, we don't care about what's in the "training" part.
+    config = load_config(args.config)
 
     # Wait until a ".for_eval" checkpoint exists. Then rename it to ".in_eval".
     # After the end, it will be renamed to ".{score}".
@@ -56,7 +61,7 @@ def main():
 
         # Load the latest checkpoint and evaluate it
         logger.info('Found a new checkpoint, evaluating...')
-        alphasau_agent = DQNAgent(0, training=False)
+        alphasau_agent = DQNAgent(0, config=config, training=False)
         alphasau_agent.load_weights(checkpoint_path_tmp)
         current_perf = eval_agent(alphasau_agent)
 

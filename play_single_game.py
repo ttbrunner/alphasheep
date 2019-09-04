@@ -17,6 +17,7 @@ from gui.gui import Gui, UserQuitGameException
 from agents.agents import RandomCardAgent
 from gui.gui_agent import GUIAgent
 from log_util import init_logging, get_class_logger, get_named_logger
+from utils import load_config
 
 
 def main():
@@ -36,9 +37,12 @@ def main():
     get_class_logger(Gui).setLevel(logging.DEBUG)                   # Log mouse clicks.
     get_class_logger(RuleBasedAgent).setLevel(logging.DEBUG)        # Log decisions by the rule-based players.
 
+    # Load config.
+    config = load_config("default_config.yaml")
+
     if agent_choice == "alphasau":
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)
-        alphasau_agent = DQNAgent(0, training=False)
+        alphasau_agent = DQNAgent(0, config=config, training=False)
         alphasau_agent.load_weights(as_checkpoint_path)
         p0 = Player("0-AlphaSau", agent=alphasau_agent)
     elif agent_choice == "user":

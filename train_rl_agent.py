@@ -9,6 +9,7 @@ from collections import deque
 
 from agents.agents import RandomCardAgent
 from agents.dqn_agent import DQNAgent
+from agents.rule_based_agent import RuleBasedAgent
 from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
 from game.card import Suit
@@ -17,43 +18,55 @@ from game.game_state import Player
 from log_util import init_logging, get_class_logger, get_named_logger
 from timeit import default_timer as timer
 
+from utils import load_config
+
 
 def main():
     # Game Setup:
     # - Every game has the ego player (id 0) playing a Herz-Solo.
     # - The cards are rigged so that the ego player always receives a pretty good hand, most of them are winnable.
-    # - The 3 enemies are all RandomCardAgents - for now.
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--weights_path", help="Weights are loaded and periodically saved to this file.", required=False)
+    parser.add_argument("--config", help="A yaml config file. Must always be specified.", required=True)
     args = parser.parse_args()
-    weights_path = args.weights_path
 
     # Init logging and adjust log levels for some classes.
     init_logging()
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
-    alphasau_agent = DQNAgent(0, training=True)
-    if weights_path is not None:
+    config = load_config(args.config)
+
+    # Create agents.
+    agents = []
+    for i in range(4):
+        x = config["training"]["player_agents"][i]
+        if x == "DQNAgent":
+            agent = DQNAgent(i, config=config, training=True)
+        elif x == "RandomCardAgent":
+            agent = RandomCardAgent(i)
+        elif x == "RuleBasedAgent":
+            agent = RuleBasedAgent(i)
+        else:
+            raise ValueError(f'Unknown agent type: "{x}"')
+        agents.append(agent)
+
+    # Load weights for agents.
+    agent_checkpoint_names = config["training"]["agent_checkpoints"]
+    for i, weights_path in agent_checkpoint_names.items():
         if not os.path.exists(weights_path):
             logger.info('Weights file "{}" does not exist. Will create new file.'.format(weights_path))
         else:
-            alphasau_agent.load_weights(weights_path)
+            agents[i].load_weights(weights_path)
 
-    players = [
-        Player("0-AlphaSau", agent=alphasau_agent),
-        Player("1-Zenzi", agent=RandomCardAgent(1)),
-        Player("2-Franz", agent=RandomCardAgent(2)),
-        Player("3-Andal", agent=RandomCardAgent(3))
-    ]
+    players = [Player(f"Player {i} ({a.__class__.__name__})", agent=a) for i, a in enumerate(agents)]
 
     # Rig the game so Player 0 has the cards to play a Herz-Solo. Force them to play it.
     game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=0)
     controller = GameController(players, dealing_behavior=DealWinnableHand(game_mode), forced_game_mode=game_mode)
 
-    # Train virtually forever.
-    n_episodes = 100000000
+    n_episodes = config["training"]["n_episodes"]
+    logger.info(f"Will train for {n_episodes} episodes.")
 
     # Calculate win% as simple moving average.
     win_rate = float('nan')
@@ -61,7 +74,7 @@ def main():
     sma_window_len = 1000
     won_deque = deque()
 
-    save_every_s = 120
+    save_every_s = config["training"]["save_checkpoints_every_s"]
 
     time_start = timer()
     time_last_save = timer()
@@ -84,9 +97,10 @@ def main():
 
             # Save model checkpoint.
             # Also make a copy for evaluation - the eval jobs will sync on this file and later remove it.
-            if weights_path is not None and timer() - time_last_save > save_every_s:
-                alphasau_agent.save_weights(weights_path, overwrite=True)
-                shutil.copyfile(weights_path, f"{os.path.splitext(weights_path)[0]}.for_eval.h5")
+            if timer() - time_last_save > save_every_s:
+                for i, weights_path in agent_checkpoint_names.items():
+                    agents[i].save_weights(weights_path, overwrite=True)
+                    shutil.copyfile(weights_path, f"{os.path.splitext(weights_path)[0]}.for_eval.h5")
                 time_last_save = timer()
 
         winners = controller.run_game()

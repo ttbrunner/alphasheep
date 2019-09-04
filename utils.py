@@ -1,3 +1,8 @@
+from typing import Dict
+
+import yaml
+
+
 class Event:
     """
     Hamfisted event handler, so that the controller can send out update events to the GUI.
@@ -20,3 +25,9 @@ class Event:
             subscriber_fn()
 
 
+def load_config(config_filepath: str) -> Dict:
+    """
+    Loads a YAML config file.
+    """
+    with open(config_filepath, 'r') as stream:
+        return yaml.safe_load(stream)
