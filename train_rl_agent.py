@@ -34,7 +34,7 @@ def main():
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
-    alphasau_agent = DQNAgent(training=True)
+    alphasau_agent = DQNAgent(0, training=True)
     if weights_path is not None:
         if not os.path.exists(weights_path):
             logger.info('Weights file "{}" does not exist. Will create new file.'.format(weights_path))
@@ -43,9 +43,9 @@ def main():
 
     players = [
         Player("0-AlphaSau", agent=alphasau_agent),
-        Player("1-Zenzi", agent=RandomCardAgent()),
-        Player("2-Franz", agent=RandomCardAgent()),
-        Player("3-Andal", agent=RandomCardAgent())
+        Player("1-Zenzi", agent=RandomCardAgent(1)),
+        Player("2-Franz", agent=RandomCardAgent(2)),
+        Player("3-Andal", agent=RandomCardAgent(3))
     ]
 
     # Rig the game so Player 0 has the cards to play a Herz-Solo. Force them to play it.

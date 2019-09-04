@@ -87,9 +87,9 @@ class DQNAgent(PlayerAgent):
         # But then again, this typically doesn't stop DL from performing well, so let's stick with it for now.
 
         model = Sequential()
-        model.add(Dense(256, activation='relu', input_shape=(self._state_size,)))
+        model.add(Dense(384, activation='relu', input_shape=(self._state_size,)))
+        model.add(Dense(256, activation='relu'))
         model.add(Dense(128, activation='relu'))
-        model.add(Dense(64, activation='relu'))
         model.add(Dense(self._action_size, activation='linear'))
 
         optimizer = Adam(lr=0.001)
