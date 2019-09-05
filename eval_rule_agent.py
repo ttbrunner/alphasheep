@@ -1,7 +1,7 @@
 import logging
 import os
 
-from agents.rule_based_agent import RuleBasedAgent
+from agents.rule_based.rule_based_agent import RuleBasedAgent
 from controller.game_controller import GameController
 from eval_util import eval_agent
 from log_util import init_logging, get_class_logger, get_named_logger

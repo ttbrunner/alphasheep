@@ -7,9 +7,9 @@ import os
 import shutil
 from collections import deque
 
-from agents.agents import RandomCardAgent
-from agents.dqn_agent import DQNAgent
-from agents.rule_based_agent import RuleBasedAgent
+from agents.dummy.random_card_agent import RandomCardAgent
+from agents.reinforcment_learning.dqn_agent import DQNAgent
+from agents.rule_based.rule_based_agent import RuleBasedAgent
 from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
 from game.card import Suit

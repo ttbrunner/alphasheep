@@ -5,8 +5,9 @@ import argparse
 import logging
 import os
 
-from agents.dqn_agent import DQNAgent
-from agents.rule_based_agent import RuleBasedAgent
+from agents.reinforcment_learning.dqn_agent import DQNAgent
+from agents.rule_based.rule_based_agent import RuleBasedAgent
+from agents.dummy.static_policy_agent import StaticPolicyAgent
 from controller.dealing_behavior import DealWinnableHand
 from controller.game_controller import GameController
 from game.card import Suit
@@ -14,7 +15,7 @@ from game.game_mode import GameMode, GameContract
 from game.game_state import Player
 
 from gui.gui import Gui, UserQuitGameException
-from agents.agents import RandomCardAgent
+from agents.dummy.random_card_agent import RandomCardAgent
 from gui.gui_agent import GUIAgent
 from log_util import init_logging, get_class_logger, get_named_logger
 from utils import load_config
@@ -22,7 +23,7 @@ from utils import load_config
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--p0-agent", type=str, choices=['rule', 'random', 'alphasau', 'user'], required=True)
+    parser.add_argument("--p0-agent", type=str, choices=['static', 'rule', 'random', 'alphasau', 'user'], required=True)
     parser.add_argument("--alphasau-checkpoint", help="Checkpoint for AlphaSau, if --p0-agent=alphasau.", required=False)
     args = parser.parse_args()
     agent_choice = args.p0_agent
@@ -49,7 +50,8 @@ def main():
         p0 = Player("0-User", agent=GUIAgent(0))
     elif agent_choice == "rule":
         p0 = Player("0-Hans", agent=RuleBasedAgent(0))
-
+    elif agent_choice == "static":
+        p0 = Player("0-Static", agent=StaticPolicyAgent(0))
     else:
         p0 = Player("0-Hans", agent=RandomCardAgent(0))
 

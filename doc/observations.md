@@ -99,3 +99,24 @@ Observation:
 - **Interpretation**: Overparametrizing the network greatly helps (in this case).
 - **Interpretation**: Better performance correlates with less "constant q-vectors".
 - **Idea**: Is it really overparametrized? How far can we go? How large is too large?
+
+---
+Commit #12480153b371c7d64721b37c23c7b98fc20435d7
+
+Now training against RuleBasedAgent. However, performance is still evaluated against RandomCardAgent.
+
+Observation:
+- Worse instead of better. Agent doesn't improve beyond 1.20.
+- Apparently, it learns a completely static policy, with most trumps ranked at the top.
+- The "constant q-vector" problem is back with a vengeance. 
+- **Interpretation**: This seems to happen whenever the agent couldn't learn a good way to react to a situation / doesn't know what to do.
+
+Discussion:
+- Currently, static policies are just *too* good. Since invalid actions are automatically discarded, a static policy actually generates fitting actions for various situations. Not necessarily the best ones, but often kind of OK.
+- It seems the agent learned a static policy that maximizes the expected future reward, and can actually achieve a respectable performance with it (1.20)!
+- **Idea**: Extract the policy (q-vector), create a StaticPolicyAgent, and evaluate it. Is its performance similarly high?
+
+Next steps:
+- Verify our assumption with a StaticPolicyAgent
+- Change evaluation to also evaluate against RuleBasedAgent (this will yield new numbers)
+- Introduce infinite negative reward for invalid actions (or a feedback loop of -1): this should force the agent away from static policies.

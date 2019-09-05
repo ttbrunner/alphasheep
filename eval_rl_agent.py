@@ -10,7 +10,7 @@ import argparse
 import logging
 import os
 
-from agents.dqn_agent import DQNAgent
+from agents.reinforcment_learning.dqn_agent import DQNAgent
 from controller.game_controller import GameController
 from eval_util import eval_agent
 from log_util import init_logging, get_class_logger, get_named_logger

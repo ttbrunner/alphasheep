@@ -2,7 +2,8 @@ import numpy as np
 import os
 from timeit import default_timer as timer
 
-from agents.agents import RandomCardAgent, PlayerAgent
+from agents.agents import PlayerAgent
+from agents.dummy.random_card_agent import RandomCardAgent
 from controller.dealing_behavior import DealWinnableHand, DealExactly
 from controller.game_controller import GameController
 from game.card import Suit
