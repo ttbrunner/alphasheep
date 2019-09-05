@@ -84,3 +84,18 @@ Next steps:
 - **Idea**: Start tuning hyperparams for DQNAgent and implement some advanced methods (double DQN?). How close can we get to 1.38?
 - **Idea**: Train against RandomCardAgent instead of RuleBasedAgent without changing anything. Will the performance improve?
 - **Idea**: Resolve the "constant q-vector" problem above. Does this help?
+
+---
+Commit #a0a6c537c5e30d7c27c1d7f0e52e637b828f3f7e
+
+Increased network size from (256, 128, 64) to (384, 256, 128 neurons). This roughly triples the number of parameters (43008 -> 135168).
+Observation: 
+- Much better! Now DQNAgent achieves a rel. performance of 1.30 (best so far).
+- Also, performance was much stronger from the start (above 1.23 in the first hour of training alone). 
+
+Observation:
+- In an early checkpoint (1.24), the "constant q-vector" behavior observed only in the first 1-3 tricks (before: 3-5).
+- In a later checkpoint (1.30), this behavior only occurs very sporadically. 
+- **Interpretation**: Overparametrizing the network greatly helps (in this case).
+- **Interpretation**: Better performance correlates with less "constant q-vectors".
+- **Idea**: Is it really overparametrized? How far can we go? How large is too large?
