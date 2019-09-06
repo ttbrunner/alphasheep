@@ -1,0 +1,52 @@
+# Config:
+# - Herz-solo only game
+# - DQNAgent playing as the declaring player
+# - vs 3x RandomCardAgent
+
+# The config loader expands this variable to a subdir with the name of this param file, in the same directory as the param file.
+# All files are written and read to this experiment dir.
+experiment_dir: ${subdir_fname_without_ext}
+
+agent_config:
+  dqn_agent:
+    model_neurons:                        # 3 Layers
+      [
+        384,
+        256,
+        128,
+      ]
+
+    gamma: 0.6                            # Discount factor
+    epsilon: 0.1                          # Exploration rate
+    experience_buffer_len: 2000
+
+    lr: 0.001
+    batch_size: 32
+    retrain_every: 8                      # Wait n experiences before doing the next training step.
+
+    state_contents:
+      [
+        cards_in_hand,
+        cards_in_trick,
+        cards_already_played
+      ]
+
+# These settings are only used during training. Eval and play_single_game can do what they want.
+training:
+  player_agents:
+    0: DQNAgent
+    1: RuleBasedAgent
+    2: RuleBasedAgent
+    3: RuleBasedAgent
+
+  # Save (and load) checkpoints per agent. Theoretically, we could train multiple agents simultaneously,
+  # with different checkpoints.
+  agent_checkpoint_names:
+    0: model-p0.h5
+
+  # Every n seconds, the checkpoints are written to disk.
+  save_checkpoints_every_s: 300
+
+  # Train virtually forever.
+  # Right now, on our cluster this does ~100k episodes per hour.
+  n_episodes: 100000000
