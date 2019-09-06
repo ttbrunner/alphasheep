@@ -16,6 +16,10 @@ agent_config:
         128,
       ]
 
+    zero_q_for_invalid_actions: True
+    allow_invalid_actions: False
+    invalid_action_reward:
+
     gamma: 0.9                            # Discount factor
     epsilon: 0.1                          # Exploration rate
     experience_buffer_len: 2000

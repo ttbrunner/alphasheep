@@ -15,13 +15,7 @@ from utils.log_util import get_class_logger
 
 class DQNAgent(PlayerAgent):
     """
-    First try: a cookie-cutter DQN implementation that tries to win, but can only ever see the current trick.
-
-    Right now, it can only see its current cards and what is on the table. There is no history so in all probability, the agent
-    should learn to play greedily. Or - who knows?
-
-    In the long run, we'd like to extend the agent to deal with additional state, but for now we can experiment with this
-    limited scenario.
+    First try: a cookie-cutter DQN implementation.
     """
 
     def __init__(self, player_id: int, config: Dict, training: bool):
@@ -55,6 +49,19 @@ class DQNAgent(PlayerAgent):
         # Action space: One action for every card.
         # Naturally, most actions will be disabled because the agent doesn't have the card or is not allowed to play it.
         self._action_size = 32
+
+        # If True, then all unavailable actions are zeroed in the q-vector during learning. In the original
+        # setup, this equals "enter a terminal state where the game is lost". I thought this might improve training
+        # speed, but not sure right now.
+        self._zero_q_for_invalid_actions = config["zero_q_for_invalid_actions"]
+
+        # If allowed, then the agent can "try" to play an invalid card and gets punished for it, while staying
+        # in the same state. If not allowed, invalid actions are automatically skipped when playing.
+        # See discussion in observations.md
+        self._allow_invalid_actions = config["allow_invalid_actions"]
+        self._invalid_action_reward = config["invalid_action_reward"]
+        if self._allow_invalid_actions and self._zero_q_for_invalid_actions:
+            raise ValueError("allow_invalid_actions and zero_q_for_invalid_actions are mutually exclusive.")
 
         # Discount and exploration rate
         self._gamma = config["gamma"]
@@ -91,8 +98,6 @@ class DQNAgent(PlayerAgent):
 
     def _build_model(self):
         # Build the Q-network.
-        # This is just a first shot - the game is pretty simple so intuitively I'd say the network is a bit on the large side.
-        # But then again, this typically doesn't stop DL from performing well, so let's stick with it for now.
 
         model = Sequential()
         model.add(Input(shape=(self._state_size,)))
@@ -152,6 +157,11 @@ class DQNAgent(PlayerAgent):
         assert offset == self._state_size
         return state
 
+    def _encode_action(self, card: Card):
+        action = np.zeros(self._action_size, dtype=np.int32)
+        action[self._card_indices[card]] = 1
+        return action
+
     def _receive_experience(self, state, action, reward, next_state, terminated, available_actions):
         # Store the experience into the buffer and retrain the network.
 
@@ -197,7 +207,8 @@ class DQNAgent(PlayerAgent):
 
         # Update the Q-value for the actions that were picked. Leave the rest the same.
         q_target = q_curr.copy()
-        q_target *= available_actions_batch
+        if self._zero_q_for_invalid_actions:
+            q_target *= available_actions_batch
         q_target[np.arange(self._batch_size), action_id_batch] = exp_reward
 
         self.q_network.fit(state_batch, q_target, epochs=1, verbose=0)
@@ -224,36 +235,49 @@ class DQNAgent(PlayerAgent):
 
         # Pick an action (a card).
         selected_card = None
-        if self.training and np.random.rand() <= self._epsilon:
-            # Explore: Select a random card (that is allowed).
-            self._current_q_vals = np.ones(self._action_size, dtype=np.float32) / self._action_size
-            cards_in_hand = list(cards_in_hand)
-            np.random.shuffle(cards_in_hand)
-            for card in cards_in_hand:
-                if available_actions[self._card_indices[card]]:
-                    selected_card = card
-                    break
-        else:
-            # Exploit: Predict q-values for the current state and select the best action/card that is allowed.
-            q_values = self.q_network.predict(state[np.newaxis, :])[0]
-            self._current_q_vals = q_values
-            i_best_actions = np.argsort(q_values)[::-1]
-            self.logger.debug("Q values:\n" + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
+        while selected_card is None:
+            # We run this in a loop, because the agent can select an invalid action and is then asked to try again.
 
-            for i_action in i_best_actions:
-                if available_actions[i_action]:
-                    selected_card = self._cards[i_action]
-                    break
+            if self.training and np.random.rand() <= self._epsilon:
+                # Explore: Select a random card - only exploring allowed actions for now.
+                self._current_q_vals = np.ones(self._action_size, dtype=np.float32) / self._action_size
+                cards_in_hand = list(cards_in_hand)
+                np.random.shuffle(cards_in_hand)
+                for card in cards_in_hand:
+                    if available_actions[self._card_indices[card]]:
+                        selected_card = card
+                        break
+            else:
+                # Exploit: Predict q-values for the current state and select the best action/card that is allowed.
+                q_values = self.q_network.predict(state[np.newaxis, :])[0]
+                self._current_q_vals = q_values
+                i_best_actions = np.argsort(q_values)[::-1]
+                self.logger.debug("Q values:\n" + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
+
+                if self._allow_invalid_actions and self.training:
+                    # If invalid is allowed (only during training): select the "best" action.
+                    selected_card = self._cards[i_best_actions[0]]
+                    if not available_actions[i_best_actions[0]]:
+                        # Did we pick an invalid move? Time for punishment!
+                        # Experience: we stay in the same state, but get a negative reward.
+                        self._receive_experience(state=state, action=self._encode_action(selected_card),
+                                                 reward=self._invalid_action_reward,
+                                                 next_state=state,
+                                                 terminated=False, available_actions=available_actions)
+                        selected_card = None
+                else:
+                    # Only valid are allowed: pick the "best" action that is allowed.
+                    for i_action in i_best_actions:
+                        if available_actions[i_action]:
+                            selected_card = self._cards[i_action]
+                            break
 
         if selected_card is None:
             raise ValueError("Could not find a valid card! Please debug. Sorry.")
 
         # Store the state and chosen action until the next call (in which we will receive feedback)
-        selected_action = np.zeros(self._action_size, dtype=np.int32)
-        selected_action[self._card_indices[selected_card]] = 1
-
         self._prev_state = state
-        self._prev_action = selected_action
+        self._prev_action = self._encode_action(selected_card)
         self._prev_available_actions = available_actions
 
         # Memory: remember cards that were played.

@@ -16,7 +16,7 @@ agent_config:
         128,
       ]
 
-    zero_q_for_invalid_actions: True
+    zero_q_for_invalid_actions: False
     allow_invalid_actions: False
     invalid_action_reward:
 
@@ -25,8 +25,8 @@ agent_config:
     experience_buffer_len: 2000
 
     lr: 0.001
-    batch_size: 16
-    retrain_every: 4                      # Wait n experiences before doing the next training step.
+    batch_size: 32
+    retrain_every: 8                      # Wait n experiences before doing the next training step.
 
     state_contents:
       [
