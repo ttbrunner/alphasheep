@@ -4,6 +4,7 @@ from timeit import default_timer as timer
 
 from agents.agents import PlayerAgent
 from agents.dummy.random_card_agent import RandomCardAgent
+from agents.rule_based.rule_based_agent import RuleBasedAgent
 from controller.dealing_behavior import DealWinnableHand, DealExactly
 from controller.game_controller import GameController
 from game.card import Suit
@@ -17,7 +18,7 @@ def eval_agent(agent: PlayerAgent) -> float:
     Evaluates an agent by playing 1000 games. For each game,
     - The agent is dealt quasi-random cards, with the condition that they enable a Herz-solo.
     - The cards are frozen and the game is repeated 100 times
-    - The agent is replaced by a baseline (RandomCardAgent) and the game is again repeated 100 times
+    - The agent is replaced by a baseline (RuleBasedAgent) and the game is again repeated 100 times
     - The win rate of the agent is compared with the baseline, the result is the relative performance improvement over the baseline.
 
     The final output is the mean relative performance improvement over all 1000 games.
@@ -31,17 +32,17 @@ def eval_agent(agent: PlayerAgent) -> float:
     # Main set of players
     players = [
         Player("0-agent", agent=agent),
-        Player("1-Zenzi", agent=RandomCardAgent(1)),
-        Player("2-Franz", agent=RandomCardAgent(2)),
-        Player("3-Andal", agent=RandomCardAgent(3))
+        Player("1-Zenzi", agent=RuleBasedAgent(1)),
+        Player("2-Franz", agent=RuleBasedAgent(2)),
+        Player("3-Andal", agent=RuleBasedAgent(3))
     ]
 
-    # Baseline player: We compare the winrate of AlphaSau with a baseline agent (in this case, RandomCardAgent).
+    # Baseline player: We compare the winrate of AlphaSau with a baseline agent (in this case, RuleBasedAgent).
     # - For each game, we fix the cards dealt and sample the same game a number of times.
     # - From this we obtain the winrate of AlphaSau and the baseline for this specific game.
     # - Per game, we then calculate the "relative performance", comparing winrate with the baseline.
     # - Finally, we repeat this for a large number of games and measure the mean/median relative performance.
-    baseline_agent = RandomCardAgent(0)
+    baseline_agent = RuleBasedAgent(0)
     baseline_players = [Player("0-Baseline", agent=baseline_agent), *players[1:]]
 
     # Rig the game so Player 0 has the cards to play a Herz-Solo.

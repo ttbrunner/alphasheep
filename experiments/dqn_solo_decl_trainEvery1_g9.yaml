@@ -16,13 +16,13 @@ agent_config:
         128,
       ]
 
-    gamma: 0.6                            # Discount factor
+    gamma: 0.9                            # Discount factor
     epsilon: 0.1                          # Exploration rate
     experience_buffer_len: 2000
 
     lr: 0.001
     batch_size: 32
-    retrain_every: 8                      # Wait n experiences before doing the next training step.
+    retrain_every: 1                      # Wait n experiences before doing the next training step.
 
     state_contents:
       [
@@ -35,9 +35,9 @@ agent_config:
 training:
   player_agents:
     0: DQNAgent
-    1: RandomCardAgent
-    2: RandomCardAgent
-    3: RandomCardAgent
+    1: RuleBasedAgent
+    2: RuleBasedAgent
+    3: RuleBasedAgent
 
   # Save (and load) checkpoints per agent. Theoretically, we could train multiple agents simultaneously,
   # with different checkpoints.
