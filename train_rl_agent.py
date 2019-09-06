@@ -35,7 +35,14 @@ def main():
     logger = get_named_logger("{}.main".format(os.path.splitext(os.path.basename(__file__))[0]))
     get_class_logger(GameController).setLevel(logging.INFO)     # Don't log specifics of a single game
 
+    # Load config.
+    # Create experiment dir and prepend it to all paths.
+    # If it already exists, then training will simply resume.
+    logger.info(f'Loading config from "{args.config}"...')
     config = load_config(args.config)
+    experiment_dir = config["experiment_dir"]
+    os.makedirs(config["experiment_dir"], exist_ok=True)
+    agent_checkpoint_paths = {i: os.path.join(experiment_dir, name) for i, name in config["training"]["agent_checkpoint_names"].items()}
 
     # Create agents.
     agents = []
@@ -52,8 +59,7 @@ def main():
         agents.append(agent)
 
     # Load weights for agents.
-    agent_checkpoint_names = config["training"]["agent_checkpoints"]
-    for i, weights_path in agent_checkpoint_names.items():
+    for i, weights_path in agent_checkpoint_paths.items():
         if not os.path.exists(weights_path):
             logger.info('Weights file "{}" does not exist. Will create new file.'.format(weights_path))
         else:
@@ -98,7 +104,7 @@ def main():
             # Save model checkpoint.
             # Also make a copy for evaluation - the eval jobs will sync on this file and later remove it.
             if timer() - time_last_save > save_every_s:
-                for i, weights_path in agent_checkpoint_names.items():
+                for i, weights_path in agent_checkpoint_paths.items():
                     agents[i].save_weights(weights_path, overwrite=True)
                     shutil.copyfile(weights_path, f"{os.path.splitext(weights_path)[0]}.for_eval.h5")
                 time_last_save = timer()

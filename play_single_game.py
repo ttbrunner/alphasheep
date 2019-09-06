@@ -25,11 +25,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--p0-agent", type=str, choices=['static', 'rule', 'random', 'alphasau', 'user'], required=True)
     parser.add_argument("--alphasau-checkpoint", help="Checkpoint for AlphaSau, if --p0-agent=alphasau.", required=False)
+    parser.add_argument("--agent-config", help="YAML file, containing agent specifications for AlphaSau.", required=False)
     args = parser.parse_args()
     agent_choice = args.p0_agent
     as_checkpoint_path = args.alphasau_checkpoint
-    if agent_choice == "alphasau" and not as_checkpoint_path:
-        raise ValueError("Need to specify --alphasau_checkpoint if --p0_agent=alphasau.")
+    as_config_path = args.agent_config
+    if agent_choice == "alphasau" and (not as_checkpoint_path or not as_config_path):
+        raise ValueError("Need to specify --alphasau-checkpoint and --agent-config if --p0_agent=alphasau.")
 
     # Init logging and adjust log levels for some classes.
     init_logging()
@@ -38,14 +40,18 @@ def main():
     get_class_logger(Gui).setLevel(logging.DEBUG)                   # Log mouse clicks.
     get_class_logger(RuleBasedAgent).setLevel(logging.DEBUG)        # Log decisions by the rule-based players.
 
-    # Load config.
-    config = load_config("default_config.yaml")
-
+    # Create the agent for Player 0.
     if agent_choice == "alphasau":
+        # Load config. We ignore anything under "training", but we need "agent_config" to run the the agents.
+        logger.info(f'Loading config from "{as_config_path}"...')
+        config = load_config(as_config_path)
+
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)
+
         alphasau_agent = DQNAgent(0, config=config, training=False)
         alphasau_agent.load_weights(as_checkpoint_path)
         p0 = Player("0-AlphaSau", agent=alphasau_agent)
+
     elif agent_choice == "user":
         p0 = Player("0-User", agent=GUIAgent(0))
     elif agent_choice == "rule":
@@ -55,15 +61,13 @@ def main():
     else:
         p0 = Player("0-Hans", agent=RandomCardAgent(0))
 
+    # Players 1-3 are RuleBasedAgents.
     players = [
         p0,
         Player("1-Zenzi", agent=RuleBasedAgent(1)),
         Player("2-Franz", agent=RuleBasedAgent(2)),
         Player("3-Andal", agent=RuleBasedAgent(3))
     ]
-
-    # # Deal fairly and allow agents to choose their game.
-    # controller = GameController(players)
 
     # Rig the game so Player 0 has the cards to play a Herz-Solo.
     # Also, force them to play it.
