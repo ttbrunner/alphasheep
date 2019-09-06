@@ -6,7 +6,7 @@ from controller.dealing_behavior import DealFairly, DealingBehavior
 from game.card import Suit, pip_scores
 from game.game_mode import GameMode, GameContract
 from game.game_state import Player, GameState, GamePhase
-from log_util import get_class_logger
+from utils.log_util import get_class_logger
 
 
 class GameController:

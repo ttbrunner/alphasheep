@@ -1,7 +1,5 @@
 from typing import Iterable, List
 
-import numpy as np
-
 from agents.agents import PlayerAgent
 from game.card import Card, Suit, Pip, new_deck
 from game.game_mode import GameMode

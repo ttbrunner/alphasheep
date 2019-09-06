@@ -9,12 +9,12 @@ from controller.game_controller import GameController
 from game.card import Suit
 from game.game_mode import GameMode, GameContract
 from game.game_state import Player
-from log_util import get_named_logger
+from utils.log_util import get_named_logger
 
 
 def eval_agent(agent: PlayerAgent) -> float:
     """
-    Evaluates the agent by playing 1000 games. For each game,
+    Evaluates an agent by playing 1000 games. For each game,
     - The agent is dealt quasi-random cards, with the condition that they enable a Herz-solo.
     - The cards are frozen and the game is repeated 100 times
     - The agent is replaced by a baseline (RandomCardAgent) and the game is again repeated 100 times
@@ -97,7 +97,7 @@ def eval_agent(agent: PlayerAgent) -> float:
         perf_record[i_game] = perf
 
     s_elapsed = timer() - time_start
-    mean_perf = np.mean(perf_record)
+    mean_perf = np.mean(perf_record).item()
     median_perf = np.median(perf_record)
     logger.info("Finished evaluation. Took {:.0f} seconds.".format(s_elapsed))
     logger.info("Mean rel. performance={:.3f}. Median rel. performance={:.3f}. ".format(mean_perf, median_perf))

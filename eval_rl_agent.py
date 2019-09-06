@@ -12,9 +12,9 @@ import os
 
 from agents.reinforcment_learning.dqn_agent import DQNAgent
 from controller.game_controller import GameController
-from eval_util import eval_agent
-from log_util import init_logging, get_class_logger, get_named_logger
-from utils import load_config
+from evaluation import eval_agent
+from utils.log_util import init_logging, get_class_logger, get_named_logger
+from utils.config_util import load_config
 
 
 def main():

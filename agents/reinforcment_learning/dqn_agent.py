@@ -10,7 +10,7 @@ from tensorflow.python.keras.optimizers import Adam
 from agents.agents import PlayerAgent
 from game.card import Card, new_deck
 from game.game_mode import GameMode
-from log_util import get_class_logger
+from utils.log_util import get_class_logger
 
 
 class DQNAgent(PlayerAgent):

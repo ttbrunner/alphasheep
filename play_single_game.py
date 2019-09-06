@@ -17,8 +17,8 @@ from game.game_state import Player
 from gui.gui import Gui, UserQuitGameException
 from agents.dummy.random_card_agent import RandomCardAgent
 from gui.gui_agent import GUIAgent
-from log_util import init_logging, get_class_logger, get_named_logger
-from utils import load_config
+from utils.log_util import init_logging, get_class_logger, get_named_logger
+from utils.config_util import load_config
 
 
 def main():

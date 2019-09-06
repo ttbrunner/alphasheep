@@ -1,9 +1,9 @@
-from typing import Iterable, List, Callable
+from typing import Iterable, List
 
 from agents.agents import PlayerAgent
 from game.card import Card
 from game.game_mode import GameMode
-from log_util import get_class_logger
+from utils.log_util import get_class_logger
 
 
 class GUIAgent(PlayerAgent):

@@ -1,8 +1,7 @@
 from enum import Enum
 from typing import Iterable, List
-import numpy as np
 
-from game.card import Card, Pip, Suit, new_deck
+from game.card import Card, Pip, Suit
 
 
 class GameContract(Enum):

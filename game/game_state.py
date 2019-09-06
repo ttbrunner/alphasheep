@@ -3,7 +3,7 @@ from enum import Enum
 
 from agents.agents import PlayerAgent
 from game.game_mode import GameMode
-from utils import Event
+from utils.event_util import Event
 
 
 class Player:

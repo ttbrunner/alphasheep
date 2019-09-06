@@ -6,9 +6,10 @@ import pygame.freetype
 from game.card import new_deck, pip_scores, Pip, Suit, Card
 from game.game_state import GameState, GamePhase
 from gui.assets import get_card_img_path
+from gui.card_display import sort_for_gui
 from gui.gui_agent import GUIAgent
-from gui.utils import sorted_cards
-from log_util import get_class_logger
+
+from utils.log_util import get_class_logger
 
 
 class UserQuitGameException(Exception):
@@ -81,7 +82,7 @@ class Gui:
     def _draw_player_cards(self):
         # Sort each player's cards before displaying. This is only for viewing in the GUI and does not affect the Player object.
         # NOTE: this is recalculated on every draw and kinda wasteful. Might want to do lazy-updating if we need UI performance.
-        player_cards = [sorted_cards(cards, game_mode=self.game_state.game_mode) for cards in
+        player_cards = [sort_for_gui(cards, game_mode=self.game_state.game_mode) for cards in
                         (player.cards_in_hand for player in self.game_state.players)]
 
         # Draw each player's cards onto their respective card surfaces.

@@ -15,10 +15,10 @@ from controller.game_controller import GameController
 from game.card import Suit
 from game.game_mode import GameContract, GameMode
 from game.game_state import Player
-from log_util import init_logging, get_class_logger, get_named_logger
+from utils.log_util import init_logging, get_class_logger, get_named_logger
 from timeit import default_timer as timer
 
-from utils import load_config
+from utils.config_util import load_config
 
 
 def main():

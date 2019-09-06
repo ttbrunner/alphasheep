@@ -4,7 +4,7 @@ import numpy as np
 from agents.agents import PlayerAgent
 from game.card import Card, Suit, Pip, pip_scores
 from game.game_mode import GameMode, GameContract
-from log_util import get_class_logger
+from utils.log_util import get_class_logger
 
 
 class RuleBasedAgent(PlayerAgent):
@@ -54,7 +54,6 @@ class RuleBasedAgent(PlayerAgent):
         # First, choose an action, and later find a card that fits.
         # These action definitions could also be shared across behaviors, so this could remove some of the redundancy
         #  we get when duplicating behavior for different game modes.
-        action = None
 
         valid_cards = [c for c in cards_in_hand if game_mode.is_play_allowed(c, cards_in_hand, cards_in_trick)]
         own_trumps = self._trumps_by_power(in_cards=valid_cards, game_mode=game_mode)
