@@ -82,7 +82,7 @@ Observation:
 
 Next steps:
 - **Idea**: Start tuning hyperparams for DQNAgent and implement some advanced methods (double DQN?). How close can we get to 1.38?
-- **Idea**: Train against RandomCardAgent instead of RuleBasedAgent without changing anything. Will the performance improve?
+- **Idea**: Train against RuleBasedAgent instead of RandomCardAgent without changing anything. Will the performance improve?
 - **Idea**: Resolve the "constant q-vector" problem above. Does this help?
 
 ---
@@ -120,3 +120,30 @@ Next steps:
 - Verify our assumption with a StaticPolicyAgent
 - Change evaluation to also evaluate against RuleBasedAgent (this will yield new numbers)
 - Introduce infinite negative reward for invalid actions (or a feedback loop of -1): this should force the agent away from static policies.
+
+---
+Commit #e3f007ee5e4c8c611b87926d7450a04a9fee1d39
+
+Created StaticPolicyAgent with a fixed Q-vector extracted from the previous DQNAgent checkpoint.
+
+Observation:
+- It performs just as well as the previous DQNAgent (1.20)!!!
+- This confirms our earlier assumption.
+- Static policies seem to act like a local minimum, and training gets stuck.
+
+Discussion:
+- Playing against stronger enemies causes the agent to prefer this kind of local minimum. 
+- Presumably, the task is *too hard* for the agent to learn.
+- **Idea**: Is this a problem of exploration? Against the RandomPolicyAgent, it was often possible to win the game with sub-optimal choices and then evolve from there. Against the RuleBasedAgent, we need to play really well in order to win. This means that often there exists only a single sequence of actions that results in a positive reward signal. 
+- In our current setup (eps-greedy), the possibility of exploring exactly that sequence is very low.
+- Note: The term "optimal" is used loosely here; in fact we cannot determine truly optimal actions because of partial observability.
+- **Idea**: Weighted replay buffer? Assign more importance to some experiences?
+- **Idea**: Reward shaping? Give rewards per trick, based on points scored? Don't want to do this right now, seems like opening a whole can of worms.
+- **Idea**: Curriculum learning? Start against RandomCard, then switch to RuleBased enemies? Perhaps even self-play later?
+
+Next steps:
+- Change evaluation to also evaluate against RuleBasedAgent (this will yield new numbers, and select different "best-performing" checkpoints)
+- Try infinite negative reward for invalid actions (or a feedback loop of -1): this should force the agent away from static policies. Does this kick-start learning, or will it just give us a different form of bad performance?
+- Try reward shaping.
+- Try curriculum learning.
+- Try some modifications to the replay buffer.
