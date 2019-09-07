@@ -49,7 +49,7 @@ training:
     0: model-p0.h5
 
   # Every n seconds, the checkpoints are written to disk.
-  save_checkpoints_every_s: 300
+  save_checkpoints_every_s: 120
 
   # Train virtually forever.
   # Right now, on our cluster this does ~100k episodes per hour.
