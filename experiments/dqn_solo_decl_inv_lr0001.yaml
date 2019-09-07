@@ -16,17 +16,17 @@ agent_config:
         128,
       ]
 
-    zero_q_for_invalid_actions: True
-    allow_invalid_actions: False
-    invalid_action_reward:
+    zero_q_for_invalid_actions: False
+    allow_invalid_actions: True
+    invalid_action_reward: -1.0
 
     gamma: 0.6                            # Discount factor
     epsilon: 0.1                          # Exploration rate
     experience_buffer_len: 2000
 
-    lr: 0.001
-    batch_size: 16
-    retrain_every: 4                      # Wait n experiences before doing the next training step.
+    lr: 0.0001
+    batch_size: 32
+    retrain_every: 8                      # Wait n experiences before doing the next training step.
 
     state_contents:
       [

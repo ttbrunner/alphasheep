@@ -20,11 +20,11 @@ agent_config:
     allow_invalid_actions: False
     invalid_action_reward:
 
-    gamma: 0.99                            # Discount factor
+    gamma: 0.6                            # Discount factor
     epsilon: 0.1                          # Exploration rate
     experience_buffer_len: 2000
 
-    lr: 0.001
+    lr: 0.0001
     batch_size: 32
     retrain_every: 8                      # Wait n experiences before doing the next training step.
 

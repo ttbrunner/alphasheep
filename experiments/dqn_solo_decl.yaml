@@ -24,7 +24,7 @@ agent_config:
     epsilon: 0.1                          # Exploration rate
     experience_buffer_len: 2000
 
-    lr: 0.001
+    lr: 0.0003
     batch_size: 32
     retrain_every: 8                      # Wait n experiences before doing the next training step.
 
