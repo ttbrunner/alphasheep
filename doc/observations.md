@@ -147,3 +147,44 @@ Next steps:
 - Try reward shaping.
 - Try curriculum learning.
 - Try some modifications to the replay buffer.
+
+---
+Commit #2195c64f7d3d2bd3f8ef083eaf99aa619b128713
+
+Now everything is training and evaluating against RuleBasedAgent. Did a bunch of experiments with hyperparameters.
+
+Observation:
+- Increasing gamma doesn't seem to do anything (reasonable - we have fixed-length episodes).
+- Increasing epsilon doesn't seem to do anything. Policy is still static.
+- Reducing batch size doesn't do much (performance slightly worse, training slower)
+- Running training every experience (instead of every 8 experiences) doesn't do much (but training is much slower)
+- Zeroing out invalid actions doesn't do much (slightly improves training speed).
+- Reducing LR from 0.001 to 0.0003 **helps**!! Higher performance, and the policy sometimes becomes non-static in the last 3 tricks.
+
+---
+Commit #007efb1bf85903463e71e5b1333d95db2a193adb
+
+Now allowing the agent to take invalid actions and be punished for it. In that case, the agent stays in the same state and receives a negative reward. This results in an endless loop from which the agent can only escape if they change their mind, or eps-greedy exploration kicks in.
+
+Observation:
+- At the start of training, the agent is stuck in the loop until the eps-greedy exploration takes them out of it. For now, exploration is limited to valid actions only.
+- The agent picks up valid actions very quickly (after few hundred episodes)
+- **No more static policies!** Yay! The agent now reacts to every state, in almost all cases a valid action is at the top of the Q-table.
+- However, the overall performance is not yet better than previous static policies.
+- Most moves seem pretty good, but every now and then there is a glaring mistake.
+
+Discussion:
+- This helps against the static policy, but it's not clear if it's required to increase performance.
+- After all, the old agent was able to escape the static policy by using a lower LR.
+
+Observation:
+- The performance measure (winrate relative to RuleBasedAgent) is skewed and not very representative.
+- **Idea**: Since we are now playing against realistic enemies, we can simply use the overall winrate. Also, since both the agent and the enemies are almost completely deterministic, we can reduce the number of samples during evaluation.
+- Baseline winrates when playing against 3 other RuleBasedAgents:
+    - RuleBasedAgent: 0.421
+    - StaticPolicyAgent: 0.316
+    - RandomCardAgent: 0.257
+        
+Next steps:
+- Change evaluation criteria to overall winrate.
+- Train this with reduced LR and compare.
