@@ -70,7 +70,7 @@ def main():
 
                     # Now we know the performance. Find best-performing previous checkpoint that exists on disk
                     splitext = os.path.splitext(cp_path)
-                    checkpoints = glob.glob(os.path.join(os.path.dirname(cp_path), "{}-*{}".format(splitext[0], splitext[1])))
+                    checkpoints = glob.glob("{}-*{}".format(splitext[0], splitext[1]))
                     best_perf = 0.
                     for cp in checkpoints:
                         perf_str = re.findall(r"{}-(.*){}".format(os.path.basename(splitext[0]), splitext[1]), cp)
