@@ -44,7 +44,7 @@ class Gui:
         self._middle_trick_surf = pygame.Surface((300, 270))
 
         pygame.freetype.init()
-        self._font = pygame.freetype.SysFont(None, 12)
+        self._font = pygame.freetype.SysFont(None, 11)
         self._font.antialiased = True
 
         # Latest click - these values survive only for one draw call. During the draw call, they are set, and afterwards read.
@@ -135,12 +135,14 @@ class Gui:
                             color = col_normal
                             if not self.game_state.game_mode.is_play_allowed(card, cards_in_hand=tmp_hand, cards_in_trick=tmp_trick):
                                 color = col_invalid
-                            self._font.render_to(self._screen, (480+i*30, 580), f"{val:.3f}".lstrip("0"), fgcolor=color)
+                            x = 477 + i * 30
+                            y = 585 if i % 2 == 0 else 570
+                            self._font.render_to(self._screen, (x, y), f"{val:.3f}", fgcolor=color)
 
                     # Also render the value of the card that was played
                     val = vals.get(self.game_state.current_trick_cards[-1], None)
                     if val is not None:
-                        self._font.render_to(self._screen, (618, 538), f"{val:.3f}".lstrip("0"), fgcolor=col_normal)
+                        self._font.render_to(self._screen, (618, 538), f"{val:.3f}", fgcolor=col_normal)
 
     def _draw_current_trick_cards(self):
         # Draw the cards that are "on the table".
