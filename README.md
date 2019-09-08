@@ -1,4 +1,4 @@
-# AlphaSau - Reinforcement Learning for Schafkopf
+# AlphaSheep - Reinforcement Learning for Schafkopf
 
 ## Current Status
 #### Simulator
@@ -65,7 +65,7 @@
 1. Create a Singularity container:
    ```
    cd _cluster_runner
-   sudo singularity build sng-alphasau.img sng_buildfile
+   sudo singularity build sng-alphasheep.img sng_buildfile
    ```
 2. Copy the image to the _cluster_runner dir on the remote machine
 3. Start training for as many experiments you like:

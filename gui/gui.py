@@ -60,7 +60,7 @@ class Gui:
         # Show PyGame window. Assets can only be loaded after this.
         self._screen = pygame.display.set_mode(self.resolution)
         self._card_assets = {card: pygame.image.load(get_card_img_path(card)).convert() for card in new_deck()}
-        pygame.display.set_caption("Interactive AlphaSau")
+        pygame.display.set_caption("Interactive AlphaSheep")
 
         # Subscribe to events of the controller
         self.game_state.ev_changed.subscribe(self.on_game_state_changed)

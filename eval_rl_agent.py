@@ -65,13 +65,13 @@ def main():
                     # Create agent
                     agent_type = config["training"]["player_agents"][i_agent]
                     if agent_type == "DQNAgent":
-                        alphasau_agent = DQNAgent(0, config=config, training=False)
+                        alphasheep_agent = DQNAgent(0, config=config, training=False)
                     else:
                         raise ValueError(f"Unknown agent type specified: {agent_type}")
-                    alphasau_agent.load_weights(checkpoint_path_tmp)
+                    alphasheep_agent.load_weights(checkpoint_path_tmp)
 
                     # Eval agent
-                    current_perf = eval_agent(alphasau_agent)
+                    current_perf = eval_agent(alphasheep_agent)
 
                     # Now we know the performance. Find best-performing previous checkpoint that exists on disk
                     logger.info("Comparing performance to previous checkpoints...")

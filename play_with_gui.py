@@ -26,15 +26,15 @@ from utils.config_util import load_config
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--p0-agent", type=str, choices=['static', 'rule', 'random', 'alphasau', 'user'], required=True)
-    parser.add_argument("--alphasau-checkpoint", help="Checkpoint for AlphaSau, if --p0-agent=alphasau.", required=False)
-    parser.add_argument("--agent-config", help="YAML file, containing agent specifications for AlphaSau.", required=False)
+    parser.add_argument("--p0-agent", type=str, choices=['static', 'rule', 'random', 'alphasheep', 'user'], required=True)
+    parser.add_argument("--alphasheep-checkpoint", help="Checkpoint for AlphaSheep, if --p0-agent=alphasheep.", required=False)
+    parser.add_argument("--agent-config", help="YAML file, containing agent specifications for AlphaSheep.", required=False)
     args = parser.parse_args()
     agent_choice = args.p0_agent
-    as_checkpoint_path = args.alphasau_checkpoint
+    as_checkpoint_path = args.alphasheep_checkpoint
     as_config_path = args.agent_config
-    if agent_choice == "alphasau" and (not as_checkpoint_path or not as_config_path):
-        raise ValueError("Need to specify --alphasau-checkpoint and --agent-config if --p0_agent=alphasau.")
+    if agent_choice == "alphasheep" and (not as_checkpoint_path or not as_config_path):
+        raise ValueError("Need to specify --alphasheep-checkpoint and --agent-config if --p0_agent=alphasheep.")
 
     # Init logging and adjust log levels for some classes.
     init_logging()
@@ -44,15 +44,15 @@ def main():
     get_class_logger(RuleBasedAgent).setLevel(logging.DEBUG)        # Log decisions by the rule-based players.
 
     # Create the agent for Player 0.
-    if agent_choice == "alphasau":
+    if agent_choice == "alphasheep":
 
         # Load config. We ignore the "training" and "experiment" sections, but we need "agent_config".
         logger.info(f'Loading config from "{as_config_path}"...')
         config = load_config(as_config_path)
         get_class_logger(DQNAgent).setLevel(logging.DEBUG)          # Log Q-values.
-        alphasau_agent = DQNAgent(0, config=config, training=False)
-        alphasau_agent.load_weights(as_checkpoint_path)
-        p0 = Player("0-AlphaSau", agent=alphasau_agent)
+        alphasheep_agent = DQNAgent(0, config=config, training=False)
+        alphasheep_agent.load_weights(as_checkpoint_path)
+        p0 = Player("0-AlphaSheep", agent=alphasheep_agent)
     elif agent_choice == "user":
         p0 = Player("0-User", agent=GUIAgent(0))
     elif agent_choice == "rule":
