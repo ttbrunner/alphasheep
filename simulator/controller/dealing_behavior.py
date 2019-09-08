@@ -3,20 +3,20 @@ from typing import Iterable, List
 
 import numpy as np
 
-from game.card import new_deck, Card, Suit, Pip
-from game.game_mode import GameMode, GameContract
+from simulator.card_defs import new_deck, Card, Suit, Pip
+from simulator.game_mode import GameMode, GameContract
 
 
 class DealingBehavior(ABC):
     """
-    We can exchange dealing behavior for easier experiments: if we want the agent to play specific game variants exclusively.
+    Base class for various kinds of (possibly biased) dealers.
     """
 
     @abstractmethod
     def deal_hands(self) -> List[Iterable[Card]]:
         """
         Deals 4 hands (one for each player) of 8 cards each.
-        :return: list(4) of iterable(8).
+        :return: list(4) of iterable(8). The list indices correspond to absolute player ids (are not rotated after games).
         """
         pass
 
@@ -57,7 +57,7 @@ class DealWinnableHand(DealingBehavior):
         # Quick and dirty heuristic for deciding whether to play a solo.
 
         if game_mode.contract != GameContract.suit_solo:
-            raise NotImplementedError("Only Suit-solo is allowed at this time.")
+            raise NotImplementedError("Only Suit-solo is implemented at this time.")
 
         # Needs 6 trumps and either good Obers or lots of Unters.
         if sum(1 for c in cards_in_hand if game_mode.is_trump(c)) >= 6:
@@ -72,7 +72,7 @@ class DealWinnableHand(DealingBehavior):
 
 class DealExactly(DealingBehavior):
     """
-    Deals exactly the specified cards.
+    Deals exactly the specified cards. Use for sampling the same game multiple times.
     """
     def __init__(self, player_hands: List[Iterable[Card]]):
         assert len(player_hands) == 4 and not any(cards for cards in player_hands if len(list(cards)) != 8)

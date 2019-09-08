@@ -1,8 +1,8 @@
 from typing import Iterable, List
 
-from agents.agents import PlayerAgent
-from game.card import Card, Suit, Pip, new_deck
-from game.game_mode import GameMode
+from simulator.player_agent import PlayerAgent
+from simulator.card_defs import Card, Suit, Pip, new_deck
+from simulator.game_mode import GameMode
 
 
 class StaticPolicyAgent(PlayerAgent):
@@ -12,7 +12,6 @@ class StaticPolicyAgent(PlayerAgent):
     notably one that significantly outperforms RandomCardAgent.
 
     This policy is extracted from one of those agents (more precisely: I copypasted the Q-vector from the log output).
-    Surprisingly, it performs pretty well in a solo situation (with alot of trump)!
     """
 
     def __init__(self, player_id: int):

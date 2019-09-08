@@ -2,7 +2,7 @@
 A logging architecture that allows for easy creation of Loggers, even when run from different __main__s and with different modules.
 This is similar to the old log4j / log4net structure.
 
-I feel like this is not the best way to do things... I'm happy if you can suggest something more elegant.
+I feel like this is not the best way to do things... I'm happy if you can suggest something more elegant. Contributions welcome.
 """
 
 import logging

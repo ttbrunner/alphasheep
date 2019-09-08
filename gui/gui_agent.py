@@ -1,18 +1,18 @@
 from typing import Iterable, List
 
-from agents.agents import PlayerAgent
-from game.card import Card
-from game.game_mode import GameMode
+from simulator.player_agent import PlayerAgent
+from simulator.card_defs import Card
+from simulator.game_mode import GameMode
 from utils.log_util import get_class_logger
 
 
 class GUIAgent(PlayerAgent):
     """
-    An agent that is part of the GUI and allows the user to play.
+    A proxy agent (that is actually part of the GUI).
     For the time being, can only be used in player slot 0 (clicking on cards is only implemented for this player).
 
-    When the GUI is __init__ed, it will find the GUIAgent in a player slot and register the callback.
-    Whenever the agent has to do an action, it will run the callback - the GUI will then wait for and determine the user action.
+    When the GUI is __enter__ed, it will find the GUIAgent in the player list and register a callback.
+    Whenever the agent has to play a card, it will run the callback - the GUI will then block until the user clicks on a card.
     """
 
     def __init__(self, player_id: int):
@@ -38,9 +38,8 @@ class GUIAgent(PlayerAgent):
                 return card
             else:
                 # Usually, the GUI caches the previous click.
-                # So when a "choose" action follows a "click to continue", it's theoretically 2 clicks.
+                # So when a "choose" event follows a "click to continue", it's theoretically 2 clicks.
                 # However, if the user clicked on a card on the FIRST click, the SECOND click will automatically choose that card.
                 # That is intended behaviour, but in this case we need to reset the click cache.
                 reset_click = True
                 self.logger.warn(f"Cannot play selected card {card} - not allowed!")
-

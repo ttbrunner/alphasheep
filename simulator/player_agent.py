@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Iterable, List, Dict, Optional
 
-from game.card import Card
-from game.game_mode import GameMode
+from simulator.card_defs import Card
+from simulator.game_mode import GameMode
 
 
 class PlayerAgent(ABC):
@@ -34,7 +34,7 @@ class PlayerAgent(ABC):
         :param cards_in_trick: the four cards in the trick after all players have played theirs.
         :param rel_taker_id: the id of the player who takes the trick, relative to this player's id.
                              TODO: Replace this with a better mechanism that
-                             TODO: allows the agents to map players to cards across tricks
+                                   allows the agents to map players to cards across tricks
         """
         pass                # Default implementation: do nothing
 
@@ -58,6 +58,4 @@ class PlayerAgent(ABC):
         Gets internal values (e.g. q-values) for each Card for display.
         :return: Optional - A dictionary with a value for each card in hand.
         """
-        return None         # Default implementation: no values
-
-
+        return None         # Default implementation: None available

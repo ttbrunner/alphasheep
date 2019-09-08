@@ -1,5 +1,5 @@
 """
-Runs a large number of games without the GUI. Use this to train an agent.
+Trains an agent, as specified in an experiment config file.
 """
 import argparse
 import logging
@@ -10,11 +10,11 @@ from collections import deque
 from agents.dummy.random_card_agent import RandomCardAgent
 from agents.reinforcment_learning.dqn_agent import DQNAgent
 from agents.rule_based.rule_based_agent import RuleBasedAgent
-from controller.dealing_behavior import DealWinnableHand
-from controller.game_controller import GameController
-from game.card import Suit
-from game.game_mode import GameContract, GameMode
-from game.game_state import Player
+from simulator.controller.dealing_behavior import DealWinnableHand
+from simulator.controller.game_controller import GameController
+from simulator.card_defs import Suit
+from simulator.game_mode import GameContract, GameMode
+from simulator.game_state import Player
 from utils.log_util import init_logging, get_class_logger, get_named_logger
 from timeit import default_timer as timer
 
@@ -23,11 +23,11 @@ from utils.config_util import load_config
 
 def main():
     # Game Setup:
-    # - Every game has the ego player (id 0) playing a Herz-Solo.
-    # - The cards are rigged so that the ego player always receives a pretty good hand, most of them are winnable.
+    # - In every game, Player 0 will play a Herz-Solo
+    # - The cards are rigged so that Player 0 always receives a pretty good hand, most of them should be winnable.
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", help="A yaml config file. Must always be specified.", required=True)
+    parser.add_argument("--config", help="An experiment config file. Must always be specified.", required=True)
     args = parser.parse_args()
 
     # Init logging and adjust log levels for some classes.
@@ -37,7 +37,7 @@ def main():
 
     # Load config.
     # Create experiment dir and prepend it to all paths.
-    # If it already exists, then training will simply resume.
+    # If it already exists, then training will simply resume from existing checkpoints in that dir.
     logger.info(f'Loading config from "{args.config}"...')
     config = load_config(args.config)
     experiment_dir = config["experiment_dir"]
@@ -74,7 +74,8 @@ def main():
     n_episodes = config["training"]["n_episodes"]
     logger.info(f"Will train for {n_episodes} episodes.")
 
-    # Calculate win% as simple moving average.
+    # Calculate win% as simple moving average (just for display in the logfile).
+    # The real evaluation is done in eval_rl_agent.py, with training=False.
     win_rate = float('nan')
     n_won = 0
     sma_window_len = 1000
@@ -85,7 +86,6 @@ def main():
     time_start = timer()
     time_last_save = timer()
     for i_episode in range(n_episodes):
-
         if i_episode > 0:
             # Calculate avg win%
             if i_episode < sma_window_len:

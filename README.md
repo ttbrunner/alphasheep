@@ -58,3 +58,17 @@
 - RL: https://github.com/clauszitzelsberger/Schafkopf_RL
 - MCTS: https://github.com/MartinDupont/SchafkopfBot
 
+
+
+## How to train remotely with Slurm/Singularity
+
+1. Create a Singularity container:
+   ```
+   cd _cluster_runner
+   sudo singularity build sng-alphasau.img sng_buildfile
+   ```
+2. Copy the image to the _cluster_runner dir on the remote machine
+3. Start training for as many experiments you like:
+   ```
+   ./_cluster_experiment.sh "experiments/{my_experiment}.yaml"
+   ```

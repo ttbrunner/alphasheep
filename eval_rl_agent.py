@@ -1,5 +1,10 @@
 """
-Runs in an endless loop, constantly evaluating a checkpoint. Copies the checkpoint to save the best-performing model so far.
+Evaluates the winrate of RL agents that are specified in the training section of a config file.
+
+- This script runs in an endless loop, looking for new checkpoints in the experiment dir.
+- As the evaluation is not parallelized at all (sorry), it can take some time.
+- For this reason, you can run multiple instances in parallel, each evaluating on a single CPU core.
+    Or GPU, if you like, but the network is way too small :)
 """
 
 import glob
@@ -11,7 +16,7 @@ import logging
 import os
 
 from agents.reinforcment_learning.dqn_agent import DQNAgent
-from controller.game_controller import GameController
+from simulator.controller.game_controller import GameController
 from evaluation import eval_agent
 from utils.log_util import init_logging, get_class_logger, get_named_logger
 from utils.config_util import load_config
@@ -35,25 +40,25 @@ def main():
     config = load_config(args.config)
     experiment_dir = config["experiment_dir"]
     while not os.path.exists(experiment_dir):
-        logger.warn(f'The experiment dir specified in the config does not exist: "{experiment_dir}" - waiting...')
+        logger.warn(f'The experiment dir specified in the config does yet not exist: "{experiment_dir}" - waiting...')
         sleep(10)
 
     agent_checkpoint_paths = {i: os.path.join(experiment_dir, name) for i, name in config["training"]["agent_checkpoint_names"].items()}
 
     while True:
+        # Wait until a ".for_eval" checkpoint exists (for any of possibly multiple agents). Then rename it to ".in_eval.[uniqueid]".
+        # In this way, multiple eval scripts can run in parallel.
+        # When the evaluation is done, we will rename it to ".{score}".
 
-        # Wait until a ".for_eval" checkpoint exists (for any of possibly multiple agents). Then rename it to ".in_eval".
-        # After the end, it will be renamed to ".{score}".
-        # In this way, both the training and multiple eval scripts can run in parallel.
         for i_agent, cp_path in agent_checkpoint_paths.items():
+            # If multiple agents are specified in the config, evaluate all of them.
+
             checkpoint_path_in = f"{os.path.splitext(cp_path)[0]}.for_eval.h5"
             checkpoint_path_tmp = f"{os.path.splitext(cp_path)[0]}.in_eval.pid{os.getpid()}.h5"
             if os.path.exists(checkpoint_path_in):
-                # Found a new checkpoint.
-                # Rename the file to "in_eval" and mark with PID so we don't collide with other workers
-                try:
+                # Load the latest checkpoint and evaluate it
 
-                    # Load the latest checkpoint and evaluate it
+                try:
                     os.rename(checkpoint_path_in, checkpoint_path_tmp)
                     logger.info('Found a new checkpoint, evaluating...')
 
@@ -69,6 +74,7 @@ def main():
                     current_perf = eval_agent(alphasau_agent)
 
                     # Now we know the performance. Find best-performing previous checkpoint that exists on disk
+                    logger.info("Comparing performance to previous checkpoints...")
                     splitext = os.path.splitext(cp_path)
                     checkpoints = glob.glob("{}-*{}".format(splitext[0], splitext[1]))
                     best_perf = 0.
@@ -79,7 +85,6 @@ def main():
                             if p > best_perf:
                                 best_perf = p
 
-                    logger.info("Comparing performance to previous checkpoints...")
                     if best_perf > 0:
                         logger.info("Previously best checkpoint has performance {}".format(best_perf))
                     else:

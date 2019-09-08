@@ -1,3 +1,9 @@
+"""
+Evaluates the winrate of a baseline agent.
+
+This script doesn't need an agent config because all the baseline agents are self-contained.
+"""
+
 import argparse
 import logging
 import os
@@ -5,7 +11,7 @@ import os
 from agents.dummy.random_card_agent import RandomCardAgent
 from agents.dummy.static_policy_agent import StaticPolicyAgent
 from agents.rule_based.rule_based_agent import RuleBasedAgent
-from controller.game_controller import GameController
+from simulator.controller.game_controller import GameController
 from evaluation import eval_agent
 from utils.log_util import init_logging, get_class_logger, get_named_logger
 

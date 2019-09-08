@@ -2,9 +2,9 @@ from typing import Iterable, List
 
 import numpy as np
 
-from agents.agents import PlayerAgent
-from game.card import Card
-from game.game_mode import GameMode
+from simulator.player_agent import PlayerAgent
+from simulator.card_defs import Card
+from simulator.game_mode import GameMode
 
 
 class RandomCardAgent(PlayerAgent):

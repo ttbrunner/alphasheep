@@ -1,8 +1,8 @@
 import os
 
-from game.card import Card, Pip, Suit
+from simulator.card_defs import Card, Pip, Suit
 
-open_tarock_dir = "assets/cards/OpenTarock/"
+open_tarock_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/cards/OpenTarock/")
 open_tarock_filenames = {
         Card(Suit.eichel, Pip.sau): "1.png",
         Card(Suit.gras, Pip.sau): "2.png",

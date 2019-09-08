@@ -1,17 +1,14 @@
-import logging
-
 import numpy as np
 import os
 from timeit import default_timer as timer
 
-from agents.agents import PlayerAgent
-from agents.dummy.random_card_agent import RandomCardAgent
+from simulator.player_agent import PlayerAgent
 from agents.rule_based.rule_based_agent import RuleBasedAgent
-from controller.dealing_behavior import DealWinnableHand, DealExactly
-from controller.game_controller import GameController
-from game.card import Suit
-from game.game_mode import GameMode, GameContract
-from game.game_state import Player
+from simulator.controller.dealing_behavior import DealWinnableHand, DealExactly
+from simulator.controller.game_controller import GameController
+from simulator.card_defs import Suit
+from simulator.game_mode import GameMode, GameContract
+from simulator.game_state import Player
 from utils.log_util import get_named_logger
 
 

@@ -1,9 +1,9 @@
 from typing import List, Iterable
 import numpy as np
 
-from agents.agents import PlayerAgent
-from game.card import Card, Suit, Pip, pip_scores
-from game.game_mode import GameMode, GameContract
+from simulator.player_agent import PlayerAgent
+from simulator.card_defs import Card, Suit, Pip, pip_scores
+from simulator.game_mode import GameMode, GameContract
 from utils.log_util import get_class_logger
 
 
@@ -16,7 +16,7 @@ class RuleBasedAgent(PlayerAgent):
     Right now, it's a loose assortment of heuristics, and LOTS of if-else - many of them redundant.
     CC is probably over 9000, sorry for creating an abomination. Maybe we should call it IfElseAgent :)
 
-    Supports only suit-solo right now.
+    The agent can play any Suit-Solo, both as declaring and non-declaring player.
     """
 
     def __init__(self, player_id: int):
@@ -184,6 +184,7 @@ class RuleBasedAgent(PlayerAgent):
                     else:
                         # We are not allowed to schmier a non-trump. Put the most expensive trump.
                         # TODO: don't schmier an ober!
+                        #       DQNAgent learns to exploit this!
                         action = "schmier_trump"
                         selected_card = self._cards_by_value(own_trumps)[-1]
 
@@ -194,6 +195,7 @@ class RuleBasedAgent(PlayerAgent):
                     if any(beating_cards):
                         # We can actually beat the enemy. Use the most expensive option.
                         # TODO: don't schmier-stech with ober if not necessary!
+                        #       DQNAgent learns to exploit this!
                         action = "beat_expensive"
                         selected_card = self._cards_by_value(beating_cards)[-1]
                     else:
@@ -253,7 +255,7 @@ class RuleBasedAgent(PlayerAgent):
 
     # ========
     # Helper functions for quick comparison of trumps and cards.
-    # We might want to move them to GameMode as right now they are partially dependent on this being a suit solo.
+    # TODO: Make these globally available (maybe move to GameMode).
     # ========
 
     def _trump_power(self, c: Card):

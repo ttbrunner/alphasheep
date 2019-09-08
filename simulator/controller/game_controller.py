@@ -2,14 +2,18 @@ from typing import List
 
 import numpy as np
 
-from controller.dealing_behavior import DealFairly, DealingBehavior
-from game.card import Suit, pip_scores
-from game.game_mode import GameMode, GameContract
-from game.game_state import Player, GameState, GamePhase
+from simulator.controller.dealing_behavior import DealFairly, DealingBehavior
+from simulator.card_defs import Suit, pip_scores
+from simulator.game_mode import GameMode, GameContract
+from simulator.game_state import Player, GameState, GamePhase
 from utils.log_util import get_class_logger
 
 
 class GameController:
+    """
+    Main controller of the simulator. It reads and modifies the GameState while asking the agents for their moves.
+    """
+
     def __init__(self, players: List[Player], i_player_dealer=0,
                  dealing_behavior: DealingBehavior = DealFairly(), forced_game_mode: GameMode = None):
         """
@@ -132,8 +136,8 @@ class GameController:
                                                        game_mode=game_mode)
 
                 # CHECK 1: Does the player have that card?
-                # Again, this check is only for data integrity. More sophisticated logic (trying to play cards that are not available...)
-                #  should be handled by the players themselves. This interface will accept only cards that exist.
+                # This check is only for data integrity. More sophisticated logic (trying to play cards that are not available...)
+                #  should be handled by the players themselves. The controller will only accept cards that exist.
                 assert selected_card in player.cards_in_hand, f"{player} does not have {selected_card}!"
 
                 # CHECK 2: Do the rules allow the player to play that card?

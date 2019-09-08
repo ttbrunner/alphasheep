@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Iterable, List
 
-from game.card import Card, Pip, Suit
+from simulator.card_defs import Card, Pip, Suit
 
 
 class GameContract(Enum):
@@ -33,7 +33,7 @@ class GameMode:
             assert trump_suit is not None
 
         if contract == GameContract.wenz:
-            assert trump_suit is None, "No Farbwenz allowed in the Wirtshaus!"
+            assert trump_suit is None, "No Farbwenz allowed, you Breznsalzer!"
 
         self.contract = contract
         self.declaring_player_id = declaring_player_id          # Only storing ID, so agents can't directly access other Player objects.
@@ -66,7 +66,7 @@ class GameMode:
         """
 
         assert card in cards_in_hand
-        cards_in_hand = list(cards_in_hand)                               # Python 3.5 doesn't support Collection type hints yet so let's be explicit
+        cards_in_hand = list(cards_in_hand)
 
         rufsau = None
         if self.contract == GameContract.rufspiel:
@@ -74,7 +74,7 @@ class GameMode:
 
         # To make matching easier, we redefine suits as follows:
         # - All trumps are assigned to a special "trump suit", and this includes unter and ober (depending on the variant).
-        # - Trump cards do not belong to their original suits (e.g. The suit of "Gras Unter" is not Gras, but Trump).
+        # - Trump cards do not belong to their original suits (e.g. the suit of "Gras Unter" is not Gras, but Trump).
         # - Since all trumps need to be matched with other trumps, we can simply match everything by suit (no matter if trump or not).
         def true_suit(c: Card) -> int:
             return 9001 if self.is_trump(c) else c.suit.value
@@ -86,7 +86,7 @@ class GameMode:
                 if rufsau in cards_in_hand:
                     # Player has the Rufsau. In that case, they are not allowed to play any card of ruf-suit unless:
                     if len(cards_in_hand) == 1:
-                        # If it's the only card left.
+                        # If it's the only card left. TODO: or was it 2 instead of 1?
                         return True
                     elif sum(c for c in cards_in_hand if true_suit(c) == true_suit(card)) >= 4:
                         # They have 4 cards of the ruf-suit, which enables the "davonlaufen" maneuver.

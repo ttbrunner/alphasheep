@@ -1,20 +1,18 @@
 from typing import List, Optional
 from enum import Enum
 
-from agents.agents import PlayerAgent
-from game.game_mode import GameMode
+from simulator.player_agent import PlayerAgent
+from simulator.game_mode import GameMode
 from utils.event_util import Event
 
 
 class Player:
-    # Game model class representing a player. The actual agent is defined by PlayerAgent.
-
     def __init__(self, name, agent: PlayerAgent):
         self.name = name
         self.agent = agent
 
         self.cards_in_hand = set()              # Unordered
-        self.cards_in_scored_tricks = []        # Order of playing is important
+        self.cards_in_scored_tricks = []        # Order of playing may be important
 
     def __str__(self):
         return "({})".format(self.name)
@@ -31,7 +29,9 @@ class GamePhase(Enum):
 class GameState:
     """
     GameState is the main model class of the simulator. It is intended to be reused between games.
-    The controller and the GUI both have access to it, but not the Agents (of course).
+    - The GameController owns it (create, read, write)
+    - The GUI only reads from it
+    - Player agents don't have access to it (of course).
     """
 
     def __init__(self, players: List[Player], i_player_dealer):
@@ -51,7 +51,8 @@ class GameState:
         self.current_trick_cards = []
 
         # Observers (such as the GUI) can subscribe to this event.
-        # For now, this fires when anything (relevant) happened, like players playing cards.
+        # This fires when anything (relevant) happened, like players playing cards.
+        # We might add more events for a more exciting UI in the future.
         self.ev_changed = Event()
 
     def clear_after_game(self):

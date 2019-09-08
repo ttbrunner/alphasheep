@@ -15,7 +15,6 @@ FROM: tensorflow/tensorflow:2.0.0b1-gpu-py3
 # These commands will be executed inside of the container during building.
 %post
 	apt-get update
-	#apt install -y libsm6 libxext6 libgtk2.0-dev tmux less unzip git
 
 	# The pip3 wrapper has some weird problem, see https://github.com/pypa/pip/issues/5447
 	# So we can't call pip, but need to use python3 -m pip.

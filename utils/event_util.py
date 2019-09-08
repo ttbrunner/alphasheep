@@ -1,9 +1,7 @@
 class Event:
     """
-    Hamfisted event handler, so that the controller can send out update events to the GUI.
-
-    NOTE: Using lambdas might have the potential for memory leaks - in a typical control flow you don't keep references to lambdas,
-    so you can't really unsubscribe it later.
+    Hamfisted event handler, so that the controller can send out update events to the GUI without depending on it.
+    As usual - be careful when using lambdas.
     """
 
     def __init__(self):
