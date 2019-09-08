@@ -188,3 +188,46 @@ Observation:
 Next steps:
 - Change evaluation criteria to overall winrate.
 - Train this with reduced LR and compare.
+
+---
+Commit 72c4a45bcd66b50ebf20cde0159b1d808df397e0?
+
+It's working!! After some parameter tuning, DQNAgent has achieved **super-rule-based** performance with a winrate of **0.496**!
+
+Observation:
+- Reducing LR to 0.0003, and further to 0.0001 helps (both with or without invalid actions)
+- Increasing gamma to 0.9 helps ALOT when allowing invalid actions (but not when they aren't allowed). 
+- Without allowing invalid actions, learning seems to plateau here. Allowing (and punishing) invalid actions is the way forward.
+
+Discussion:
+- It's remarkable how well the agent plays with the little information it has. For example, it never sees who actually won a specific trick. Or how many points it has scored. 
+- Granted, the RuleBasedAgent also doesn't have that information and plays pretty well. DQNAgent actually has a bit more information (memory of which cards are already gone from the game). A good agent is expected to beat this baseline.
+- DQNAgent does some very strong moves:
+    1. DQNAgent always opens with a low trump. This seems counter-intuitive, but on second look it's actually genius. By doing this, it is deliberately exploiting a bug in the RuleBasedAgents, causing them to throw away their high trumps (see "TODO: don't schmier an ober!").
+    2. Afterwards, it plays trumps in a good order.
+    3. If there is a "spatz" (a low non-trump card, which is a liability), it will try to throw it away early in the game. This is a move often done by pros, as keeping the card until the end will usually incur great damage. 
+- However, DQNAgent makes 2 clear mistakes:
+    1. It loves to play Herz-zehn, even if it's clear that the enemy will beat it. This is always an expensive mistake, as this gives away more points than usual. To me, it's not clear if the consequent loss is properly attributed to this decision. After all, it is causing the enemy to throw away their Trumps, which is desirable. This is a conflict between minimizing damage to self vs maximizing damage to the enemy. I think this may be addressed by including player scores into the state, so the damage done to self can be more easily observed.
+    2. Rarely, it tries to keep high trumps (ober) to the last, like a newbie player who is afraid to play them and waits until the enemies have already scored too many points. This move is not completely stupid - DQNAgent may be aiming for a penultimate state where it maxes out on good cards - it knows that this state is often followed by victory. But it actually depends! This too should be easier with scores contained in state, allowing the agent to differentiate between "good cards, good score" and "good cards, bad score".
+- Theoretically, the agent could learn to avoid these mistakes in due time, but this might need some more sophisticated exploration strategies.
+- **Idea**: Encoding current score into the current state should allow the agent to make that connection much easier. We are *not* encoding score into reward just yet, I don't want to create unnecessary biases for now. 
+
+Overall - the agent is now playing a solo game extremely well!
+
+For now, I think DQNAgent has reached a good state, considering we didn't use any advanced techniques. Only vanilla Q-learning!
+After some code cleanup and documentation, I will put the project on hold as I will be quite busy in the next couple of months.
+
+Some "last steps" for DQNAgent:
+- Include score into state
+- Improve RuleBasedAgent to stop DQNAgent from shamelessly exploiting it
+- Train a DQNAgent as non-declaring player, so the user can play against them :)
+
+In the future, I'd like to:
+- Try other RL approaches (double DQN, Policy Gradients, latest papers)
+- Add memory to RL agents - maybe LSTMs can remember what the other players have done, so we can play with 0 feature engineering?
+- Implement MCTS - it should be possible to "solve" Schafkopf with old-fashioned search, as the actions are very limited
+- Read up on POMDP, maybe modeling partial observability makes this easier?
+- Allow the agents to play all game modes, and include the bidding phase. This should be very interesting.
+- Finally - just like in real life, base rewards on money.
+- ???
+- PROFIT
