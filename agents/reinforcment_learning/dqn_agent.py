@@ -56,7 +56,7 @@ class DQNAgent(PlayerAgent):
 
         # If allowed, then the agent can choose an invalid card and get punished for it, while staying
         # in the same state. If not allowed, invalid actions are automatically skipped when playing.
-        # See discussion in _experiment_log.md
+        # See discussion in experiment_log.md
         self._allow_invalid_actions = config["allow_invalid_actions"]
         self._invalid_action_reward = config["invalid_action_reward"]
         if self._allow_invalid_actions and self._zero_q_for_invalid_actions:

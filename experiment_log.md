@@ -1,16 +1,18 @@
 Writing down random ideas and observations.
 
 ---
-Commit #5c34e5723726bb9c62c6a7ffb92ce101e13ba409
-- DQNAgent, playing Herz Solo exclusively, while only seeing its own cards and the current trick
-- RandomCardAgent achieves 60.4% win rate (mean over 100k episodes).
+Commit #2feb8a6097b474796c8241a6fc535b07badba728
+- Simulator and GUI are implemented. Here is a first version of DQNAgent.
+- DQNAgent plays Herz Solo exclusively against RandomCardAgents, while only seeing its own cards and the current trick.
+- We compare its winrate against that of another RandomCardAgent player.
 
 Observation:
+- RandomCardAgent achieves 60.4% win rate (mean over 100k episodes).
 - DQNAgent, in its current state, has 60.5% (10k episodes), so learning doesn't seem to work for now (or too slow).
 - Surely, some tuning is needed.
 
 Observation:
-- If we change the activation from 'linear' to 'softmax', suddenly it learns much better! 65% win rate (10k episodes)!
+- I know this sounds stupid, but if we change the activation from 'linear' to 'softmax', suddenly it learns much better! 65% win rate (10k episodes)!
 - Why? The Q-values should certainly be linear.
 - So softmax clearly has some numerical effect that accelerates learning in our setup
     - Values are squashed to 1/0 (like sigmoid)
@@ -19,7 +21,7 @@ Observation:
 - Goal: Revert to linear (because this is the "correct" q-learning paradigm), but tune something else to get the same good learning.
 
 ---
-Commit #7c0a5247860eafd075458055add9e472c8afc61f
+Commit #d56dcc90eceaf1cc5baf3c47eb2dae9f4a12f269
 - Not doing any of that softmax stuff, we're sticking to the recipe for now.
 - Changed training to not train after *every single* experience, but only every 8 experiences. The idea being that there is 0 reward for most plays, and the reward signal comes only every 8 plays. Therefore we waste a lot of time training on little information. Now we train only when there are 8 new experiences in the buffer. 
 - **Note**: Conceptually, this might have broken the dual network approach (sync_models), as they are always synced at every training step now.
@@ -30,7 +32,7 @@ Commit #7c0a5247860eafd075458055add9e472c8afc61f
 
 
 ---
-Commit #d916b78de686f45c962518eec22b3b86252efab4
+Commit #82713dd66a20f463dc5e936be81a611ed2c6c64a
 - DQNAgent is still playing Herz Solo exclusively (as the declaring player).
 - New performance measure for evaluation: relative winrate as compared to a baseline (RandomCardAgent)
 - Typically trains to ~1.20. We have a stray 1.28 but this was lucky.
@@ -43,7 +45,7 @@ Commit #d916b78de686f45c962518eec22b3b86252efab4
     
 
 ---
-Commit #f2fd24a91222346837e0af232804f744658c32f3
+Commit #9331be77de775b77913fe7f873a3668281719110
 - DQNAgent: extended state with info about all cards that have been played (=knowledge: the enemy cannot have them).
 - Theoretically, this allows the agent to play better if they know how to use the information.
 
@@ -68,7 +70,7 @@ Observation:
     - Will it ultimately increase performance?
     
 ---
-Commit #df3744fc4019241b30bc33fdc402692d17ff62a8
+Commit #b9125391ad4c581c08b981fda761e53069ed3356
 
 Created RuleBasedAgent.
 - This agent has hard-coded if-else behavior that mirror the same rules that are taught to human players. 
@@ -86,7 +88,7 @@ Next steps:
 - **Idea**: Resolve the "constant q-vector" problem above. Does this help?
 
 ---
-Commit #a0a6c537c5e30d7c27c1d7f0e52e637b828f3f7e
+Commit #2428860be9fb1e08afb5c28a338f52c5507a2887
 
 Increased network size from (256, 128, 64) to (384, 256, 128 neurons). This roughly triples the number of parameters (43008 -> 135168).
 Observation: 
@@ -101,7 +103,7 @@ Observation:
 - **Idea**: Is it really overparametrized? How far can we go? How large is too large?
 
 ---
-Commit #12480153b371c7d64721b37c23c7b98fc20435d7
+Commit #02fe55997b4fecd1cea6e4874fcb5a405d86c186
 
 Now training against RuleBasedAgent. However, performance is still evaluated against RandomCardAgent.
 
@@ -122,7 +124,7 @@ Next steps:
 - Introduce infinite negative reward for invalid actions (or a feedback loop of -1): this should force the agent away from static policies.
 
 ---
-Commit #e3f007ee5e4c8c611b87926d7450a04a9fee1d39
+Commit #386a2aced9ce9f01b3a12646588eda95698f18a3
 
 Created StaticPolicyAgent with a fixed Q-vector extracted from the previous DQNAgent checkpoint.
 
@@ -149,7 +151,7 @@ Next steps:
 - Try some modifications to the replay buffer.
 
 ---
-Commit #2195c64f7d3d2bd3f8ef083eaf99aa619b128713
+Commit #7996233a7723e3f7630132aa63c0eb8701227f6d
 
 Now everything is training and evaluating against RuleBasedAgent. Did a bunch of experiments with hyperparameters.
 
@@ -162,7 +164,7 @@ Observation:
 - Reducing LR from 0.001 to 0.0003 **helps**!! Higher performance, and the policy sometimes becomes non-static in the last 3 tricks.
 
 ---
-Commit #007efb1bf85903463e71e5b1333d95db2a193adb
+Commit #6ba4d3139f6b82705d641dee131a2fc98b067be4
 
 Now allowing the agent to take invalid actions and be punished for it. In that case, the agent stays in the same state and receives a negative reward. This results in an endless loop from which the agent can only escape if they change their mind, or eps-greedy exploration kicks in.
 
@@ -190,7 +192,7 @@ Next steps:
 - Train this with reduced LR and compare.
 
 ---
-Commit 72c4a45bcd66b50ebf20cde0159b1d808df397e0?
+Commit #c2bb7ca986832e1ee959ea517288d486fed6ed4d
 
 It's working!! After some parameter tuning, DQNAgent has achieved **super-rule-based** performance with a winrate of **0.496**!
 
