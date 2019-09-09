@@ -35,8 +35,8 @@ class DQNAgent(PlayerAgent):
 
         # We encode cards as one-hot vectors of size 32.
         # Providing indices to perform quick lookups.
-        self._cards = new_deck()                                                    # card_id -> Card
-        self._card_indices = {card: i for i, card in enumerate(self._cards)}        # Card -> card_id
+        self._id2card = new_deck()
+        self._card2id = {card: i for i, card in enumerate(self._id2card)}
 
         # Determine length of state vector.
         state_lens = {
@@ -134,20 +134,20 @@ class DQNAgent(PlayerAgent):
             if comp == "cards_in_hand":
                 # 32 bools: cards in own hand (order does not matter)
                 for card in cards_in_hand:
-                    state[offset + self._card_indices[card]] = 1
+                    state[offset + self._card2id[card]] = 1
                 offset += 32
 
             elif comp == "cards_in_trick":
                 # 3x32 bools: cards in current trick before the one to be played by the agent (order is important)
                 for i, card in enumerate(cards_in_trick):
-                    state[offset + i*32 + self._card_indices[card]] = 1
+                    state[offset + i * 32 + self._card2id[card]] = 1
                 offset += 3*32
 
             elif comp == "cards_already_played":
                 # 1x32 bools: cards that have already been played.
                 # This is an engineered feature which could also be learned by the agent if it had some memory.
                 for card in self._mem_cards_already_played:
-                    state[offset + self._card_indices[card]] = 1
+                    state[offset + self._card2id[card]] = 1
                 offset += 32
 
             else:
@@ -158,7 +158,7 @@ class DQNAgent(PlayerAgent):
 
     def _encode_action(self, card: Card):
         action = np.zeros(self._action_size, dtype=np.int32)
-        action[self._card_indices[card]] = 1
+        action[self._card2id[card]] = 1
         return action
 
     def _receive_experience(self, state, action, reward, next_state, terminated, available_actions):
@@ -196,7 +196,8 @@ class DQNAgent(PlayerAgent):
         q_next = self.target_network.predict(next_state_batch)
 
         # Terminal state: The cumulative future reward is exactly the observation - there are no future steps.
-        # Nonterminal state: The expected cumulative future reward is the observation + expected reward from the next state under the policy.
+        # Nonterminal state: The expected cumulative future reward is the observation
+        #                     + expected reward from the next state under the policy.
         #                    The amax() means that we expect the policy to pick the best action in the future.
         nonterminal_filter = (terminated_batch == 0)
         cumul_reward = reward_batch.copy()
@@ -204,7 +205,7 @@ class DQNAgent(PlayerAgent):
 
         # Update the Q-value for the actions that were experienced. Leave the rest the same.
         q_target = q_curr.copy()
-        if self._zero_q_for_invalid_actions:
+        if self._zero_q_for_invalid_actions:            # Except, of course, for when this option is set.
             q_target *= available_actions_batch
         q_target[np.arange(self._batch_size), action_id_batch] = cumul_reward
 
@@ -227,7 +228,7 @@ class DQNAgent(PlayerAgent):
         available_actions = np.zeros(self._action_size, dtype=np.bool)
         for card in cards_in_hand:
             if game_mode.is_play_allowed(card, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick):
-                available_actions[self._card_indices[card]] = True
+                available_actions[self._card2id[card]] = True
 
         # Pick an action (a card).
         selected_card = None
@@ -237,23 +238,20 @@ class DQNAgent(PlayerAgent):
             if self.training and np.random.rand() <= self._epsilon:
                 # Explore: Select a random card. For faster training, exploration only targets valid actions.
                 self._current_q_vals = np.ones(self._action_size, dtype=np.float32) / self._action_size
-                cards_in_hand = list(cards_in_hand)
-                np.random.shuffle(cards_in_hand)
-                for card in cards_in_hand:
-                    if available_actions[self._card_indices[card]]:
-                        selected_card = card
-                        break
+                tmp_cards = list(cards_in_hand)
+                np.random.shuffle(tmp_cards)
+                selected_card = next(c for c in tmp_cards if available_actions[self._card2id[c]])
             else:
                 # Exploit: Predict q-values for the current state and select the best action.
                 q_values = self.q_network.predict(state[np.newaxis, :])[0]
                 self._current_q_vals = q_values
-                i_best_actions = np.argsort(q_values)[::-1]
-                self.logger.debug("Q values:\n" + "\n".join(f"{q_values[i]}: {self._cards[i]}" for i in i_best_actions))
+                best_action_ids = np.argsort(q_values)[::-1]
+                self.logger.debug("Q values:\n" + "\n".join(f"{q_values[a]}: {self._id2card[a]}" for a in best_action_ids))
 
                 if self._allow_invalid_actions and self.training:
                     # If invalid is allowed (only during training): select the "best" action.
-                    selected_card = self._cards[i_best_actions[0]]
-                    if not available_actions[i_best_actions[0]]:
+                    selected_card = self._id2card[best_action_ids[0]]
+                    if not available_actions[best_action_ids[0]]:
                         # Did we pick an invalid move? Time for punishment!
                         # Experience: we stay in the same state, but get a negative reward.
                         self._receive_experience(state=state, action=self._encode_action(selected_card),
@@ -263,12 +261,7 @@ class DQNAgent(PlayerAgent):
                         selected_card = None
                 else:
                     # Invalid is not allowed: pick the "best" action that is allowed.
-                    for i_action in i_best_actions:
-                        if available_actions[i_action]:
-                            selected_card = self._cards[i_action]
-                            break
-
-        assert selected_card is not None
+                    selected_card = next(self._id2card[a] for a in best_action_ids if available_actions[a])
 
         # Store the state and chosen action until the next call (in which we will receive feedback)
         self._prev_state = state
@@ -323,7 +316,7 @@ class DQNAgent(PlayerAgent):
     @overrides
     def internal_card_values(self) -> Optional[Dict[Card, float]]:
         # Report q-value per card for display / debugging.
-        return {c: self._current_q_vals[i] for i, c in enumerate(self._cards)}
+        return {c: self._current_q_vals[i] for i, c in enumerate(self._id2card)}
 
     def save_weights(self, filepath, overwrite=True):
         self.logger.info(f'Saving weights to "{filepath}"...')

@@ -17,9 +17,6 @@ class RandomCardAgent(PlayerAgent):
 
         cards_in_hand = list(cards_in_hand)
         np.random.shuffle(cards_in_hand)
-        for card in cards_in_hand:
-            if game_mode.is_play_allowed(card, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick):
-                return card
 
-        raise ValueError("None of the Player's cards seem to be allowed! This should never happen! Player has cards: {}".format(
-            ",".join(str(c) for c in cards_in_hand)))
+        return next(c for c in cards_in_hand
+                    if game_mode.is_play_allowed(c, cards_in_hand=cards_in_hand, cards_in_trick=cards_in_trick))

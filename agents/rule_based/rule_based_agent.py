@@ -89,7 +89,8 @@ class RuleBasedAgent(PlayerAgent):
                 # Find out if we can beat the preceding cards.
                 if any(game_mode.is_trump(c) for c in cards_in_trick):
                     beating_cards = [c for c in own_trumps
-                                     if self._trump_power(c) > max(self._trump_power(c2) for c2 in cards_in_trick if game_mode.is_trump(c2))]
+                                     if self._trump_power(c) > max(self._trump_power(c2) for c2 in cards_in_trick
+                                                                   if game_mode.is_trump(c2))]
                 else:
                     beating_cards = own_trumps
 
@@ -113,8 +114,10 @@ class RuleBasedAgent(PlayerAgent):
             elif not game_mode.is_trump(c_lead):
                 # We can't play trump, but the leading card also is not a trump.
                 # Therefore we might beat it with a higher card of the same suit.
-                beating_cards = [c for c in valid_cards if c.suit == c_lead.suit
-                                 and self._pip_power[c.pip] > max(self._pip_power[c2.pip] for c2 in cards_in_trick if c2.suit == c_lead.suit)]
+                beating_cards = [c for c in valid_cards
+                                 if c.suit == c_lead.suit
+                                 and self._pip_power[c.pip] > max(self._pip_power[c2.pip] for c2 in cards_in_trick
+                                                                  if c2.suit == c_lead.suit)]
                 if any(beating_cards):
                     # In the case of suit, always beat high (hopefully with a sau).
                     action = "beat_suit_high"
