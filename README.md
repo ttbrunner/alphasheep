@@ -18,9 +18,9 @@ Schafkopf seems ideal to learn about the many facets of RL, because it is:
 3. **Hard**: Schafkopf is partially observable, so we can never play it perfectly. Some very critical actions, such as "schießen" (doubling the stakes), are typically taken in a gamble, before any cards are revealed.
 4. **Cooperative**: Some game contracts require players to cooperate (and even communicate). It would be interesting to see if agents communicate in ways that human players usually do.
 
-This is also the order of things I want to implement.
-- Stage 1: Create an agent that can play a single game in a single game mode really well. (DONE)
-- Stage 2: Extend to all game modes, and include the bidding phase.
+#### Current state:
+- Stage 1 **(DONE)**: Create an agent that can play a single game in a single game mode really well. 
+- Stage 2: Extend to all game modes, and include the bidding phase. Explore hierarchical planning.
 - Stage 3: Add money into the equation and have agents maximize return over an entire series of games.
 - Stage 4: Explore cooperative play with humans.
  
