@@ -1,8 +1,8 @@
 ## Random ideas and observations.
-**Note**: The commit hashes mentioned here are from a private repo and are not available in the public GitHub repo.
+
 
 ---
-Commit #2feb8a6097b474796c8241a6fc535b07badba728
+Commit #56b165280c9993a6df2bbda12ee0b74b8a234a2e
 - Simulator and GUI are implemented. Here is a first version of DQNAgent.
 - DQNAgent plays Herz Solo exclusively against RandomCardAgents, while only seeing its own cards and the current trick.
 - We compare its winrate against that of another RandomCardAgent player.
@@ -33,7 +33,7 @@ Commit #d56dcc90eceaf1cc5baf3c47eb2dae9f4a12f269
 
 
 ---
-Commit #82713dd66a20f463dc5e936be81a611ed2c6c64a
+Commit #b349e28d92c91af206194dc374df87dde0b32bc9
 - DQNAgent is still playing Herz Solo exclusively (as the declaring player).
 - New performance measure for evaluation: relative winrate as compared to a baseline (RandomCardAgent)
 - Typically trains to ~1.20. We have a stray 1.28 but this was lucky.
@@ -46,7 +46,7 @@ Commit #82713dd66a20f463dc5e936be81a611ed2c6c64a
     
 
 ---
-Commit #9331be77de775b77913fe7f873a3668281719110
+Commit #3beb70eb9f755f2194a7e5b5ccfc4f56c96b7f4c
 - DQNAgent: extended state with info about all cards that have been played (=knowledge: the enemy cannot have them).
 - Theoretically, this allows the agent to play better if they know how to use the information.
 
@@ -71,7 +71,7 @@ Observation:
     - Will it ultimately increase performance?
     
 ---
-Commit #b9125391ad4c581c08b981fda761e53069ed3356
+Commit #2304406836375ccd9cc7a2b26cefe34aa8a05433
 
 Created RuleBasedAgent.
 - This agent has hard-coded if-else behavior that mirror the same rules that are taught to human players. 
@@ -89,7 +89,7 @@ Next steps:
 - **Idea**: Resolve the "constant q-vector" problem above. Does this help?
 
 ---
-Commit #2428860be9fb1e08afb5c28a338f52c5507a2887
+Commit #03d2e79fea633cb6a8ffc2bc5886a76a6f1c84b2
 
 Increased network size from (256, 128, 64) to (384, 256, 128 neurons). This roughly triples the number of parameters (43008 -> 135168).
 Observation: 
@@ -104,7 +104,7 @@ Observation:
 - **Idea**: Is it really overparametrized? How far can we go? How large is too large?
 
 ---
-Commit #02fe55997b4fecd1cea6e4874fcb5a405d86c186
+Commit #68331d1c5a2635d907a324fc0c59b6802b6013e1
 
 Now training against RuleBasedAgent. However, performance is still evaluated against RandomCardAgent.
 
@@ -125,7 +125,7 @@ Next steps:
 - Introduce infinite negative reward for invalid actions (or a feedback loop of -1): this should force the agent away from static policies.
 
 ---
-Commit #386a2aced9ce9f01b3a12646588eda95698f18a3
+Commit #695a5254fa47f54eec67732c1d5b88dfc9414f77
 
 Created StaticPolicyAgent with a fixed Q-vector extracted from the previous DQNAgent checkpoint.
 
@@ -152,7 +152,7 @@ Next steps:
 - Try some modifications to the replay buffer.
 
 ---
-Commit #7996233a7723e3f7630132aa63c0eb8701227f6d
+Commit #02b65cc39c0228629336d7d311dcd70ffe3794a7
 
 Now everything is training and evaluating against RuleBasedAgent. Did a bunch of experiments with hyperparameters.
 
@@ -165,7 +165,7 @@ Observation:
 - Reducing LR from 0.001 to 0.0003 **helps**!! Higher performance, and the policy sometimes becomes non-static in the last 3 tricks.
 
 ---
-Commit #6ba4d3139f6b82705d641dee131a2fc98b067be4
+Commit #fcd0575c09e14fdd6718dc2dd13951e5d0fc61a9
 
 Now allowing the agent to take invalid actions and be punished for it. In that case, the agent stays in the same state and receives a negative reward. This results in an endless loop from which the agent can only escape if they change their mind, or eps-greedy exploration kicks in.
 
@@ -193,7 +193,7 @@ Next steps:
 - Train this with reduced LR and compare.
 
 ---
-Commit #c2bb7ca986832e1ee959ea517288d486fed6ed4d
+Commit #69bf300b92b285551dc92521a743e40b35e2a687
 
 It's working!! After some parameter tuning, DQNAgent has achieved **super-rule-based** performance with a winrate of **0.513**!
 
