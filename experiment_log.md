@@ -1,4 +1,5 @@
-Writing down random ideas and observations.
+## Random ideas and observations.
+**Note**: The commit hashes mentioned here are from a private repo and are not available in the public GitHub repo.
 
 ---
 Commit #2feb8a6097b474796c8241a6fc535b07badba728
@@ -194,7 +195,7 @@ Next steps:
 ---
 Commit #c2bb7ca986832e1ee959ea517288d486fed6ed4d
 
-It's working!! After some parameter tuning, DQNAgent has achieved **super-rule-based** performance with a winrate of **0.496**!
+It's working!! After some parameter tuning, DQNAgent has achieved **super-rule-based** performance with a winrate of **0.513**!
 
 Observation:
 - Reducing LR to 0.0003, and further to 0.0001 helps (both with or without invalid actions)

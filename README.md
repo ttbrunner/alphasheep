@@ -1,6 +1,6 @@
 ## AlphaSheep - Reinforcement Learning for Schafkopf
 
-![Image taken from Wikipedia](README-img.jpg)
+![Image taken from Wikipedia](README-img.png)
 
 ---
 ### Why Schafkopf?
