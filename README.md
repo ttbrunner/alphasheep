@@ -7,7 +7,7 @@
 
 [Schafkopf](https://en.wikipedia.org/wiki/Schafkopf) (English: sheep-head) is a traditional Bavarian card game, and the most popular in Bavaria. 
 
-In my free time, I love playing Schafkopf with my friends! It is a game of many rules, some explicit and some implicit. Since the game is a social activity, people often play "traditionally", in ways that their friends expect. If you can these unwritten rules then it's actually easy: Just play in exactly this way, and you will be a fine player.    
+In my free time, I love playing Schafkopf with my friends! It is a game of many rules, some explicit and some implicit. Since the game is a social activity, people often play "traditionally", in ways that their friends expect. If you know these unwritten rules then it's actually easy: Just play in exactly this way, and you will be a fine player.    
 
 So I've always wondered: is the traditional way optimal? Or can we find better ways of playing? If we train virtual agents, will they converge towards the traditional rules? Or is it possible to open up new playstyles? And, can we extract new "rules" from that?
 
