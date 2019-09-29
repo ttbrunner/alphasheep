@@ -14,16 +14,10 @@ from utils.log_util import get_named_logger
 
 def eval_agent(agent: PlayerAgent) -> float:
     """
-    Evaluates an agent by playing 1000 games. For each game,
-    - The agent is dealt quasi-random cards, with the condition that they enable a Herz-solo.
-    - The cards are frozen and the game is repeated 100 times
-    - The agent is replaced by a baseline (RuleBasedAgent) and the game is again repeated 100 times
-    - The win rate of the agent is compared with the baseline, the result is the relative performance improvement over the baseline.
+    Evaluates an agent by playing a large number of games against 3 RuleBasedAgents.
 
-    The final output is the mean relative performance improvement over all 1000 games.
-
-    :param agent: The agent to evaluate against the baseline.
-    :return: The mean relative performance improvement over the baseline.
+    :param agent: The agent to evaluate.
+    :return: The mean win rate of the agent.
     """
 
     logger = get_named_logger("{}.eval_agent".format(os.path.splitext(os.path.basename(__file__))[0]))
@@ -41,7 +35,8 @@ def eval_agent(agent: PlayerAgent) -> float:
     game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=0)
     rng_dealer = DealWinnableHand(game_mode)
 
-    # Run 40k different games. Each games is sampled 1 times.
+    # Run 40k different games. Each game can replicated (via DealExactly) and sampled multiple times.
+    # Right now, our baseline (RuleBasedAgent) is almost deterministic, so it's ok to sample each game only once.
     n_games = 40000
     n_agent_samples = 1
     perf_record = np.empty(n_games, dtype=np.float32)
