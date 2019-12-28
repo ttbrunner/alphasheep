@@ -3,9 +3,9 @@ from collections import deque
 from typing import Iterable, List, Dict, Optional
 
 from overrides import overrides
-from tensorflow.python.keras import Sequential, Input
-from tensorflow.python.keras.layers import Dense
-from tensorflow.python.keras.optimizers import Adam
+from tensorflow.keras import Sequential, Input
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
 
 from simulator.player_agent import PlayerAgent
 from simulator.card_defs import Card, new_deck
@@ -105,8 +105,10 @@ class DQNAgent(PlayerAgent):
             model.add(Dense(neurons, activation='relu'))
         model.add(Dense(self._action_size, activation='linear'))
 
-        optimizer = Adam(lr=self.config["lr"])
-        model.compile(loss='mse', optimizer=optimizer)
+        # Note that in our case, we force compile() to set the model to the old TF1 execution path. The new TF2 path is painfully slow
+        #  for us, as apparently TF2 rebuilds the graph on every predict() call (in eager mode). Since our model is so small and fast, this is a
+        #  huge overhead.
+        model.compile(loss='mse', optimizer=Adam(lr=self.config["lr"]), experimental_run_tf_function=False)
         return model
 
     def _align_target_model(self):
@@ -209,7 +211,7 @@ class DQNAgent(PlayerAgent):
             q_target *= available_actions_batch
         q_target[np.arange(self._batch_size), action_id_batch] = cumul_reward
 
-        self.q_network.fit(state_batch, q_target, epochs=1, verbose=0)
+        self.q_network.train_on_batch(state_batch, q_target)
 
     def play_card(self, cards_in_hand: Iterable[Card], cards_in_trick: List[Card], game_mode: GameMode):
         if self._in_terminal_state:

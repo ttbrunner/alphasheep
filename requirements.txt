@@ -1,5 +1,5 @@
 pygame
-tensorflow-gpu>=2.0.0b,<2.0.0rc0        # 2.0.0rc0 has a bug when Keras is trying to get gradients in eager mode
-numpy<1.17,>=1.14.5                     # 1.17 gives lots of DeprecatedWarnings for TF2
+tensorflow>=2
+numpy
 overrides                               # Provides convenient @override decorator
 PyYaml
