@@ -35,9 +35,9 @@ def eval_agent(agent: PlayerAgent) -> float:
     game_mode = GameMode(GameContract.suit_solo, trump_suit=Suit.herz, declaring_player_id=0)
     rng_dealer = DealWinnableHand(game_mode)
 
-    # Run 40k different games. Each game can replicated (via DealExactly) and sampled multiple times.
+    # Run 20k different games. Each game can be replicated (via DealExactly) and sampled multiple times.
     # Right now, our baseline (RuleBasedAgent) is almost deterministic, so it's ok to sample each game only once.
-    n_games = 40000
+    n_games = 20000
     n_agent_samples = 1
     perf_record = np.empty(n_games, dtype=np.float32)
 
