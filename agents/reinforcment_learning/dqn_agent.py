@@ -106,8 +106,9 @@ class DQNAgent(PlayerAgent):
         model.add(Dense(self._action_size, activation='linear'))
 
         # Note that in our case, we force compile() to set the model to the old TF1 execution path. The new TF2 path is painfully slow
-        #  for us, as apparently TF2 rebuilds the graph on every predict() call (in eager mode). Since our model is so small and fast, this is a
+        #  for us, as apparently TF2 preprocesses data on every predict() call (in eager mode). Since our model is so small and fast, this is a
         #  huge overhead.
+        # See discussion in https://github.com/tensorflow/tensorflow/issues/33340
         model.compile(loss='mse', optimizer=Adam(lr=self.config["lr"]), experimental_run_tf_function=False)
         return model
 
@@ -194,8 +195,8 @@ class DQNAgent(PlayerAgent):
             terminated_batch[i] = terminated
             available_actions_batch[i, :] = available_actions
 
-        q_curr = self.q_network.predict(state_batch)
-        q_next = self.target_network.predict(next_state_batch)
+        q_curr = np.array(self.q_network.predict_on_batch(state_batch))
+        q_next = np.array(self.target_network.predict_on_batch(next_state_batch))
 
         # Terminal state: The cumulative future reward is exactly the observation - there are no future steps.
         # Nonterminal state: The expected cumulative future reward is the observation
@@ -245,7 +246,7 @@ class DQNAgent(PlayerAgent):
                 selected_card = next(c for c in tmp_cards if available_actions[self._card2id[c]])
             else:
                 # Exploit: Predict q-values for the current state and select the best action.
-                q_values = self.q_network.predict(state[np.newaxis, :])[0]
+                q_values = np.array(self.q_network.predict_on_batch(state[np.newaxis, :]))[0]
                 self._current_q_vals = q_values
                 best_action_ids = np.argsort(q_values)[::-1]
                 self.logger.debug("Q values:\n" + "\n".join(f"{q_values[a]}: {self._id2card[a]}" for a in best_action_ids))
