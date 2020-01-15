@@ -99,17 +99,17 @@ class DQNAgent(PlayerAgent):
     def _build_model(self):
         # Build the Q-network.
 
+        # Since our model is very small and only uses single batches, it's faster to disable eager execution.
+        # See https://github.com/tensorflow/tensorflow/issues/33340
         model = Sequential()
+        model.run_eagerly = False
+
         model.add(Input(shape=(self._state_size,)))
         for i, neurons in enumerate(self.config["model_neurons"]):
             model.add(Dense(neurons, activation='relu'))
         model.add(Dense(self._action_size, activation='linear'))
 
-        # Note that in our case, we force compile() to set the model to the old TF1 execution path. The new TF2 path is painfully slow
-        #  for us, as apparently TF2 preprocesses data on every predict() call (in eager mode). Since our model is so small and fast, this is a
-        #  huge overhead.
-        # See discussion in https://github.com/tensorflow/tensorflow/issues/33340
-        model.compile(loss='mse', optimizer=Adam(lr=self.config["lr"]), experimental_run_tf_function=False)
+        model.compile(loss='mse', optimizer=Adam(lr=self.config["lr"]))
         return model
 
     def _align_target_model(self):
